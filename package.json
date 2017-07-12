@@ -1,0 +1,47 @@
+{
+  "name": "domo-proxy-middleware",
+  "private": true,
+  "version": "0.0.1",
+  "description": "a middleware that provides a proxy for local domo app developmenent",
+  "main": "./dist/bundle.js",
+  "scripts": {
+    "lint": "tslint src/**/*.ts --project ./tsconfig.json --type-check",
+    "test": "mocha --opts mocha.opts && rm -rf test",
+    "tdd": "mocha --opts mocha.opts --watch",
+    "build": "rm -rf ./dist && cross-env NODE_ENV=production ./node_modules/.bin/webpack -p",
+    "publish": "npm run test && npm version && npm run build && npm publish",
+    "clean": "rm -rf node_modules && npm install"
+  },
+  "author": "AppTeam6 <Squad.AppTeam6@domo.com>",
+  "repository": "",
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@appteam6/tslint-config": "0.0.1",
+    "@appteam6/webpack-config": "^1.1.1",
+    "@types/chai": "^3.5.2",
+    "@types/express": "^4.0.36",
+    "@types/mocha": "^2.2.39",
+    "@types/nock": "^8.2.1",
+    "@types/node": "^7.0.5",
+    "@types/request": "0.0.46",
+    "awesome-typescript-loader": "^3.2.1",
+    "chai": "^3.5.0",
+    "core-js": "^2.4.1",
+    "cross-env": "^5.0.1",
+    "mocha": "^3.3.0",
+    "nock": "^9.0.13",
+    "ts-node": "^3.1.0",
+    "tslint": "^5.2.0",
+    "tsutils": "^1.8.0",
+    "typescript": "^2.3.2",
+    "webpack": "^2.5.1"
+  },
+  "dependencies": {
+    "request": "^2.81.0",
+    "ryuu": "^2.23.2",
+    "ryuu-client": "^2.11.0"
+  }
+}
