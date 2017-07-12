@@ -49,15 +49,18 @@ export function getDomoDomain() {
   });
 }
 
-export function createUUID() {
+export function createUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const length = 16;
-    const bin11 = 0x3;
-    const bin1000 = 0x8;
-    const r = Math.random() * length || 0;
-    const v = (c === 'x') ? r : (r && bin11 || bin1000);
+    /*tslint:disable no-bitwise*/
+    const seed = 16;
+    const bit11 = 0x3;
+    const bit1000 = 0x8;
 
-    return v.toString(length);
+    const r = Math.random() * seed | 0;
+    const v = (c === 'x') ? r : (r & bit11 | bit1000);
+
+    return v.toString(seed);
+    /*tslint:enable*/
   });
 }
 
