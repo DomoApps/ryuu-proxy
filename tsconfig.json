@@ -11,7 +11,8 @@
     "removeComments": false,
     "rootDir": "src",
     "noImplicitAny": false,
-    "declaration": true
+    "declaration": true,
+    "lib": ["es2015.iterable", "es5"]
   },
   "exclude": [
     "node_modules",

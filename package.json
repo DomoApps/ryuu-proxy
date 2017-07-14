@@ -2,7 +2,7 @@
   "name": "domo-proxy-middleware",
   "private": true,
   "version": "0.0.1",
-  "description": "a middleware that provides a proxy for local domo app developmenent",
+  "description": "a middleware that provides a proxy for local domo app development",
   "main": "./dist/bundle.js",
   "scripts": {
     "lint": "tslint src/**/*.ts --project ./tsconfig.json --type-check",
@@ -14,9 +14,7 @@
   },
   "author": "AppTeam6 <Squad.AppTeam6@domo.com>",
   "repository": "",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "license": "MIT",
   "devDependencies": {
     "@appteam6/tslint-config": "0.0.1",
@@ -27,12 +25,14 @@
     "@types/nock": "^8.2.1",
     "@types/node": "^7.0.5",
     "@types/request": "0.0.46",
+    "@types/sinon": "^2.3.2",
     "awesome-typescript-loader": "^3.2.1",
     "chai": "^3.5.0",
     "core-js": "^2.4.1",
     "cross-env": "^5.0.1",
     "mocha": "^3.3.0",
     "nock": "^9.0.13",
+    "sinon": "^2.3.8",
     "ts-node": "^3.1.0",
     "tslint": "^5.2.0",
     "tsutils": "^1.8.0",

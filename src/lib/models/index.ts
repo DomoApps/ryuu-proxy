@@ -1,3 +1,5 @@
+import * as http from 'http';
+
 export interface DomoClient {
   instance: string;
   server: string;
@@ -26,4 +28,14 @@ export interface Manifest {
     width: number;
     height: number;
   };
+}
+
+export interface DefaultRequest {
+  url: string;
+  method: string;
+  headers: {
+    referer: string,
+    accept: string,
+  };
+  body: string;
 }
