@@ -9,6 +9,7 @@
     "test": "mocha --opts mocha.opts && rm -rf test",
     "tdd": "mocha --opts mocha.opts --watch",
     "build": "rm -rf ./dist && cross-env NODE_ENV=production ./node_modules/.bin/webpack -p",
+    "start": "npm run build -- -w",
     "publish": "npm run test && npm version && npm run build && npm publish",
     "clean": "rm -rf node_modules && npm install"
   },

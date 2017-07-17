@@ -6,6 +6,7 @@ export interface DomoClient {
   devtoken: string;
   sid: string;
   getAuthHeader(): any;
+  createUUID(): string;
 }
 
 export interface FieldMap {
@@ -30,7 +31,7 @@ export interface Manifest {
   };
 }
 
-export interface DefaultRequest {
+export interface NodeRequest extends http.IncomingMessage {
   url: string;
   method: string;
   headers: {
@@ -39,3 +40,5 @@ export interface DefaultRequest {
   };
   body: string;
 }
+
+export interface NodeResponse extends http.ServerResponse {}
