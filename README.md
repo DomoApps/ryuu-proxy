@@ -4,6 +4,12 @@ Simple middleware to add to a local development server while developing Domo App
 
 ## Usage
 
+This library leverages the last login session from your Domo CLI. If that session is no longer active or doesn't exist then the proxy won't work. Be sure that you've logged in before you start working:
+
+```
+$ domo login
+```
+
 ### [Express](https://expressjs.com/) / [Connect](https://github.com/senchalabs/connect)
 
 This library comes with a simple wrapper for Express/Connect middleware. 
