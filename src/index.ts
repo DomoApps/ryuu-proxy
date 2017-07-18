@@ -9,7 +9,7 @@ import {
   NodeResponse,
 } from './lib/models';
 
-export class Proxy {
+export class DomoAppProxy {
   private manifest: Manifest;
   private client: DomoClient;
   private domainPromise: Promise;
@@ -20,35 +20,46 @@ export class Proxy {
     this.domainPromise = this.getDomoDomain();
   }
 
-  getManifest = (): Manifest => {
+  getManifest(): Manifest {
     return this.manifest;
   }
 
-  getDomoClient = (): DomoClient => {
+  getDomoClient(): DomoClient {
     return this.client;
   }
 
-  getDomainPromise = (): Promise => {
+  getDomainPromise(): Promise {
     return this.domainPromise;
   }
 
-  getLastLogin = (): DomoClient => {
+  getLastLogin(): DomoClient {
     const login = Login.getMostRecentLogin();
 
     return new Domo(login.instance, login.sid, login.devtoken);
   }
 
-  all = (req: any, res: any, next?: any): void => {
-    const args = this.formatParams(req, res, next);
+  getDomoDomain(): Promise<string> {
+    const uuid = Domo.createUUID();
+    const j = request.jar();
+    const auth = `SID="${this.client.sid}"`;
+    const cookie = request.cookie(auth);
+    j.setCookie(cookie, this.client.server);
 
-    if (this.isValidRequest(args.req.url)) {
-      this.fetch(args.req, args.res).catch(args.next);
-    } else {
-      args.next();
-    }
+    const options = {
+      url: `${this.client.server}/api/content/v1/mobile/environment`,
+      headers: this.client.getAuthHeader(),
+    };
+
+    return new Promise((resolve, reject) => {
+      request(options, (error, response, body) => {
+        if (error) reject(`https://${uuid}.domoapps.${this.getEnv()}`);
+
+        resolve(`https://${uuid}.${JSON.parse(body).domoappsDomain}`);
+      });
+    });
   }
 
-  isValidRequest = (url: string): boolean => {
+  isValidRequest(url: string): boolean {
     const routes = ['/data/v1/', '/domo/v1/'];
     let isValid = false;
 
@@ -59,7 +70,7 @@ export class Proxy {
     return isValid;
   }
 
-  formatParams = (req: any, res: any, next?: any): any => {
+  formatParams(req: any, res: any, next?: any): any {
     let nReq: NodeRequest;
     let nRes: NodeResponse;
     let nNext: any;
@@ -83,7 +94,7 @@ export class Proxy {
     };
   }
 
-  fetch = (req: NodeRequest, res: NodeResponse): Promise => {
+  fetch(req: NodeRequest, res: NodeResponse): Promise {
     let api: string;
 
     return this.domainPromise
@@ -118,28 +129,7 @@ export class Proxy {
       });
   }
 
-  getDomoDomain = (): Promise<string> => {
-    const uuid = Domo.createUUID();
-    const j = request.jar();
-    const auth = `SID="${this.client.sid}"`;
-    const cookie = request.cookie(auth);
-    j.setCookie(cookie, this.client.server);
-
-    const options = {
-      url: `${this.client.server}/api/content/v1/mobile/environment`,
-      headers: this.client.getAuthHeader(),
-    };
-
-    return new Promise((resolve, reject) => {
-      request(options, (error, response, body) => {
-        if (error) reject(`https://${uuid}.domoapps.${this.getEnv()}`);
-
-        resolve(`https://${uuid}.${JSON.parse(body).domoappsDomain}`);
-      });
-    });
-  }
-
-  createContext = (): Promise => {
+  createContext(): Promise {
     const options = {
       method: 'POST',
       url: `${this.client.server}/domoapps/apps/v2/contexts`,
@@ -156,10 +146,20 @@ export class Proxy {
     });
   }
 
-  getEnv = (): string => {
+  getEnv(): string {
     const regexp = /([-_\w]+)\.(.*)/;
     const int = 2;
 
     return this.client.instance.match(regexp)[int];
+  }
+
+  pipe = () => (req: any, res: any, next?: any): void => {
+    const args = this.formatParams(req, res, next);
+
+    if (this.isValidRequest(args.req.url)) {
+      this.fetch(args.req, args.res).catch(args.next);
+    } else {
+      args.next();
+    }
   }
 }

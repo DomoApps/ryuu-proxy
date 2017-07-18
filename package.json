@@ -1,5 +1,5 @@
 {
-  "name": "domo-proxy",
+  "name": "domo-app-proxy",
   "private": true,
   "version": "0.0.1",
   "description": "a middleware that provides a proxy for local domo app development",

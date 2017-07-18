@@ -4,21 +4,21 @@ import * as nock from 'nock';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
 import { expect } from 'chai';
-import { Proxy } from '.';
+import { DomoAppProxy } from '.';
 import { Manifest, DomoClient } from './lib/models';
 
-describe('Proxy', () => {
-  let client: Proxy;
+describe('DomoAppProxy', () => {
+  let client: DomoAppProxy;
   let manifest: Manifest;
   let clientStub;
   let promiseStub;
 
   beforeEach((done) => {
     // stub constructor dependencies
-    clientStub = sinon.stub(Proxy.prototype, 'getLastLogin')
+    clientStub = sinon.stub(DomoAppProxy.prototype, 'getLastLogin')
       .callsFake(() => new Domo('test.dev.domo.com', 'test-sid', 'test-token'));
 
-    promiseStub = sinon.stub(Proxy.prototype, 'getDomoDomain')
+    promiseStub = sinon.stub(DomoAppProxy.prototype, 'getDomoDomain')
       .callsFake(() => Promise.resolve('https://88e99055-1520-440c-99a0-7b2a27469391.domoapps.dev.domo.com'));
 
     manifest = {
@@ -28,7 +28,7 @@ describe('Proxy', () => {
       sizing: { width: 1, height: 1 },
     };
 
-    client = new Proxy(manifest);
+    client = new DomoAppProxy(manifest);
     done();
   });
 
@@ -38,11 +38,11 @@ describe('Proxy', () => {
   });
 
   it('should instantiate', () => {
-    expect(Proxy).to.exist;
-    expect(Proxy).to.be.an.instanceof(Function);
+    expect(DomoAppProxy).to.exist;
+    expect(DomoAppProxy).to.be.an.instanceof(Function);
 
     expect(client).to.exist;
-    expect(client).to.be.an.instanceof(Proxy);
+    expect(client).to.be.an.instanceof(DomoAppProxy);
     expect(client.getManifest()).to.exist;
     expect(client.getManifest()).to.be.equal(manifest);
     expect(client.getDomoClient()).to.exist;
@@ -176,7 +176,7 @@ describe('Proxy', () => {
     });
   });
 
-  describe('all()', () => {
+  describe('pipe()', () => {
     let paramStub;
     let fetchStub;
     let expectedArgs;
@@ -197,8 +197,8 @@ describe('Proxy', () => {
     });
 
     it('should instantiate', () => {
-      expect(client.all).to.exist;
-      expect(client.all).to.be.an.instanceOf(Function);
+      expect(client.pipe).to.exist;
+      expect(client.pipe).to.be.an.instanceOf(Function);
     });
 
     it('should call fetch() if valid', () => {
@@ -207,7 +207,7 @@ describe('Proxy', () => {
 
       const nextStub = sinon.stub(expectedArgs, 'next');
 
-      client.all({}, {}, () => 'hi');
+      client.pipe()({}, {}, () => 'hi');
 
       expect(paramStub.calledOnce).to.be.true;
       expect(validStub.calledOnce).to.be.true;
@@ -224,7 +224,7 @@ describe('Proxy', () => {
 
       const nextStub = sinon.spy(expectedArgs, 'next');
 
-      client.all({}, {}, undefined);
+      client.pipe()({}, {}, undefined);
 
       expect(paramStub.calledOnce).to.be.true;
       expect(validStub.calledOnce).to.be.true;
