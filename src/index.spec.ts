@@ -126,38 +126,10 @@ describe('DomoAppProxy', () => {
     });
   });
 
-  describe('fetch()', () => {
-    beforeEach((done) => {
-      client.getDomainPromise().then((domain) => {
-        const OK = 200;
-        nock(client.getDomoClient().server).post('/domoapps/apps/v2/contexts').reply(OK, { id: 'test-context' });
-        nock(domain).get('/data/v1/test').reply(OK);
-        sinon.stub(request, 'pipe');
-        done();
-      });
-    });
-
+  describe('build()', () => {
     it('should instantiate', () => {
-      expect(client.fetch).to.exist;
-      expect(client.fetch).to.be.an.instanceOf(Function);
-    });
-  });
-
-  describe('formatParams()', () => {
-    it('should instantiate', () => {
-      expect(client.formatParams).to.exist;
-      expect(client.formatParams).to.be.an.instanceOf(Function);
-    });
-
-    it('should handle koa ctx', () => {
-      const fakeCtx = { req: 'foo', res: 'bar' };
-      const fakeNxt = () => 'hallo';
-
-      const params = client.formatParams(fakeCtx, fakeNxt, undefined);
-
-      expect(params.req).to.equal('foo');
-      expect(params.res).to.equal('bar');
-      expect(params.next).to.equal(fakeNxt);
+      expect(client.build).to.exist;
+      expect(client.build).to.be.an.instanceOf(Function);
     });
   });
 
@@ -176,64 +148,43 @@ describe('DomoAppProxy', () => {
     });
   });
 
-  describe('pipe()', () => {
-    let paramStub;
-    let fetchStub;
-    let expectedArgs;
-
-    beforeEach(() => {
-      expectedArgs = { req: 'foo', res: 'bar', next: () => 'hi' };
-
-      paramStub = sinon.stub(client, 'formatParams')
-        .callsFake(() => expectedArgs);
-
-      fetchStub = sinon.stub(client, 'fetch')
-        .callsFake(() => Promise.resolve());
-    });
-
-    afterEach(() => {
-      paramStub.restore();
-      fetchStub.restore();
-    });
-
+  describe('express()', () => {
     it('should instantiate', () => {
-      expect(client.pipe).to.exist;
-      expect(client.pipe).to.be.an.instanceOf(Function);
+      expect(client.express).to.exist;
+      expect(client.express).to.be.an.instanceOf(Function);
     });
 
-    it('should call fetch() if valid', () => {
-      const validStub = sinon.stub(client, 'isValidRequest')
-        .callsFake(() => true);
+    it('should call build()', () => {
+      const stub = sinon.stub(client, 'build')
+        .callsFake(() => Promise.reject());
 
-      const nextStub = sinon.stub(expectedArgs, 'next');
-
-      client.pipe()({}, {}, () => 'hi');
-
-      expect(paramStub.calledOnce).to.be.true;
-      expect(validStub.calledOnce).to.be.true;
-      expect(fetchStub.calledOnce).to.be.true;
-      expect(nextStub.notCalled).to.be.true;
-
-      validStub.restore();
-      nextStub.restore();
-    });
-
-    it('should call next() if not valid', () => {
-      const validStub = sinon.stub(client, 'isValidRequest')
-        .callsFake(() => false);
-
-      const nextStub = sinon.spy(expectedArgs, 'next');
-
-      client.pipe()({}, {}, undefined);
-
-      expect(paramStub.calledOnce).to.be.true;
-      expect(validStub.calledOnce).to.be.true;
-      expect(fetchStub.calledOnce).to.be.false;
-      expect(nextStub.calledOnce).to.be.true;
-
-      validStub.restore();
-      nextStub.restore();
+      const empty = client.express()({}, {}, () => '');
+      expect(empty).to.not.exist;
+      expect(stub.calledOnce).to.be.true;
+      stub.restore();
     });
   });
 
+  describe('stream()', () => {
+    it('should instantiate', () => {
+      expect(client.stream).to.exist;
+      expect(client.stream).to.be.an.instanceOf(Function);
+    });
+
+    it('should call build()', (done) => {
+      const stub = sinon.stub(client, 'build')
+        .callsFake(() => Promise.reject());
+
+      const promise = client.stream({});
+
+      expect(promise).to.exist;
+      expect(promise).to.be.an.instanceOf(Promise);
+
+      promise.catch(() => {
+        expect(stub.calledOnce).to.be.true;
+        stub.restore();
+        done();
+      });
+    });
+  });
 });

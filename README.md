@@ -1,34 +1,58 @@
-# domo-proxy-middleware Library
+# domo-app-proxy
 
-## Adding a module
-
-```
-yo library:module moduleName
-yo library:module moduleName --complex
-```
+Simple middleware to add to a local development server while developing Domo Apps. The middleware will intercept any calls to `/data/v1` or `/domo/v1`, proxy an authenticated request to the Domo App service, and pipe the response back so that you can develop your Domo App locally and still get request data from Domo.
 
 ## Usage
 
-* `$ npm test` to run unit tests
-* `$ npm run tdd` to continuously run tests
-* `$ npm run lint` to lint code
-* `$ npm run build` to build (and minify)
-* `$ npm version` (patch|minor|major) to create git release
-* `$ npm run publish` to publish to NPM repo
-* `$ npm run clean` to do a clean install of dependencies
+### [Express](https://expressjs.com/) / [Connect](https://github.com/senchalabs/connect)
 
-## Polyfills
+This library comes with a simple wrapper for Express/Connect middleware. 
 
-This library targets ES5. Anything not supported under this standard will need to be added as a polyfill to ensure this library works in an ES5 compliant environment.
+```js
+const express = require('express');
+const { DomoAppProxy } = require('domo-app-proxy');
 
-This library uses [core-js](https://github.com/zloirock/core-js) polyfills. 
+const app = express();
 
-#### Example
+const manifest = require('./path/to/app/manifest.json');
+const proxy = new DomoAppProxy(manifest);
 
+app.use(proxy.express());
 ```
-import Set from 'core-js/library/fn/set';
 
-const set = new Set(['a', 'b', 'a', 'c']);
-set.add('d').add('b').add('e');
-console.log(set.size);        // => 5
+### Build Your Own
+
+For other frameworks, the library exposes the necessary functions to create a stream to pipe back to your server. You'll need to handle this stream as your server would expect. The only thing that `stream()` expects is a standard Node [Request](https://nodejs.org/api/http.html#http_class_http_incomingmessage) which most server frameworks extend in some way.
+
+```js
+// koa
+app.use(async (ctx, next) => {
+  await proxy
+    .stream(ctx.req)
+    .then(data => ctx.body = ctx.req.pipe(data))
+    .catch(next);
+});
+```
+
+```js
+// express
+app.use((req, res, next) => {
+  proxy
+    .stream(req)
+    .then(stream => stream.pipe(res))
+    .catch(() => next());
+});
+```
+
+```js
+// node http
+const server = http.createServer((req, res) => {
+  if (req.url === '/') {
+    loadHomePage(res);
+  } else {
+    proxy
+      .stream(req)
+      .then(stream => stream.pipe(res));
+  }
+});
 ```

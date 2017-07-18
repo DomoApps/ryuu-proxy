@@ -36,9 +36,9 @@ export interface NodeRequest extends http.IncomingMessage {
   method: string;
   headers: {
     referer: string,
-    accept: string,
+    accept?: string,
   };
-  body: string;
+  body?: string;
 }
 
 export interface NodeResponse extends http.ServerResponse {}

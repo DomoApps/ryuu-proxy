@@ -2,6 +2,9 @@ import * as Promise from 'core-js/es6/promise';
 import * as Domo from 'ryuu-client';
 import * as Login from 'ryuu/util/login';
 import * as request from 'request';
+
+import { DomoException } from './lib/errors';
+
 import {
   Manifest,
   DomoClient,
@@ -70,31 +73,12 @@ export class DomoAppProxy {
     return isValid;
   }
 
-  formatParams(req: any, res: any, next?: any): any {
-    let nReq: NodeRequest;
-    let nRes: NodeResponse;
-    let nNext: any;
-
-    // koa formatted middleware
-    if (!next && typeof res === 'function') {
-      nNext = res;
-      nReq = req.req;
-      nRes = req.res;
-    } else {
-      // node formatted middleware
-      nReq = req;
-      nRes = res;
-      nNext = next;
+  build(req: NodeRequest): Promise {
+    if (!this.isValidRequest(req.url)) {
+      const err = new DomoException('url provided is not a valid domo app endpoint');
+      return Promise.reject(err);
     }
 
-    return {
-      req: nReq,
-      res: nRes,
-      next: nNext,
-    };
-  }
-
-  fetch(req: NodeRequest, res: NodeResponse): Promise {
     let api: string;
 
     return this.domainPromise
@@ -125,7 +109,7 @@ export class DomoAppProxy {
           body: JSON.stringify(req.body),
         };
 
-        return request(options).pipe(res);
+        return options;
       });
   }
 
@@ -153,13 +137,16 @@ export class DomoAppProxy {
     return this.client.instance.match(regexp)[int];
   }
 
-  pipe = () => (req: any, res: any, next?: any): void => {
-    const args = this.formatParams(req, res, next);
-
-    if (this.isValidRequest(args.req.url)) {
-      this.fetch(args.req, args.res).catch(args.next);
-    } else {
-      args.next();
-    }
+  express = () => (req: any, res: any, next: any): void => {
+    this.build(req)
+      .then(args => this.request(args).pipe(res))
+      .catch(() => next());
   }
+
+  stream = (req: any): Promise => {
+    return this.build(req)
+      .then(this.request);
+  }
+
+  request = options => request(options);
 }
