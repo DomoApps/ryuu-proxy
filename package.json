@@ -1,6 +1,6 @@
 {
   "name": "@appteam6/domo-app-proxy",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "a middleware that provides a proxy for local domo app development",
   "main": "./dist/bundle.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "tdd": "mocha --opts mocha.opts --watch",
     "build": "rm -rf ./dist && cross-env NODE_ENV=production ./node_modules/.bin/webpack -p",
     "start": "npm run build -- -w",
-    "publish": "npm run test && npm version && npm run build && npm publish",
+    "prepublish": "npm run test && npm run build",
     "clean": "rm -rf node_modules && npm install"
   },
   "author": "AppTeam6 <Squad.AppTeam6@domo.com>",
