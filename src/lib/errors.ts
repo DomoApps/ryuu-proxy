@@ -6,7 +6,7 @@ export class DomoException extends Error {
 
   constructor(err: any, url: string) {
     const message = '' +
-      'Ensure the app has been published at least once (manifest.json should have an Id)' +
+      'Ensure the app has been published at least once (manifest.json should have an Id) ' +
       'and you\'re working with an active session by running: `domo login`';
 
     super(message);
