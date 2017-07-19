@@ -2,6 +2,12 @@
 
 Simple middleware to add to a local development server while developing Domo Apps. The middleware will intercept any calls to `/data/v1` or `/domo/v1`, proxy an authenticated request to the Domo App service, and pipe the response back so that you can develop your Domo App locally and still get request data from Domo.
 
+## Installation
+
+```
+npm install @appteam6/domo-app-proxy --save-dev
+```
+
 ## Usage
 
 This library leverages the last login session from your Domo CLI. If that session is no longer active or doesn't exist then the proxy won't work. Be sure that you've logged in before you start working:
