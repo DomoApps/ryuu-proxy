@@ -62,3 +62,59 @@ const server = http.createServer((req, res) => {
   }
 });
 ```
+
+#### Error Handling
+
+Ignoring the errors will cause the proxy to fail silently and the proxy request will return a `404` error. If you'd like a little more detail on the errors you can expose them in the response:
+
+```js
+// koa
+app.use(async (ctx, next) => {
+  await proxy
+    .stream(ctx.req)
+    .then(data => ctx.body = ctx.req.pipe(data))
+    .catch((err) => {
+      if (err.name === 'DomoException') {
+        ctx.status = err.status || err.statusCode || 500;
+        ctx.body = err;
+      } else {
+        next();
+      }
+    });
+});
+```
+
+```js
+// express / connect
+app.use((req, res, next) => {
+  proxy
+    .stream(req)
+    .then(stream => stream.pipe(res))
+    .catch(err => {
+      if (err.name === 'DomoException') {
+        res.status(err.status || err.statusCode || 500).json(err);
+      } else {
+        next();
+      }
+    });
+});
+```
+
+```js
+// http
+const server = http.createServer((req, res) => {
+  if (req.url === '/') {
+    loadHomePage();
+  } else {
+    proxy
+      .stream(req)
+      .then(stream => stream.pipe(res))
+      .catch(err => {
+        if (err.name === 'DomoException') {
+          res.writeHead(err.status || err.statusCode || 500);
+          res.end(JSON.stringify(err));
+        }
+      });
+  }
+});
+```
