@@ -65,6 +65,7 @@ export default class Transport {
   build(req: NodeRequest): Promise {
     if (!this.isValidRequest(req.url)) {
       const err = new Error('url provided is not a valid domo app endpoint');
+
       return Promise.reject(err);
     }
 
@@ -76,7 +77,7 @@ export default class Transport {
 
         return this.createContext();
       })
-      .then(context => {
+      .then((context) => {
         const jar = request.jar();
 
         const referer = (req.headers.referer.indexOf('?') >= 0)
@@ -115,9 +116,11 @@ export default class Transport {
 
     return new Promise((resolve, reject) => {
       request(options, (error, response, body) => {
+        const ok = 200;
+
         if (error) reject(error);
 
-        if (response.statusCode !== 200) reject(response);
+        if (response.statusCode !== ok) reject(response);
 
         resolve(body[0]);
       });

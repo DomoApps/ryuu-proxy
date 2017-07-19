@@ -41,4 +41,6 @@ export interface NodeRequest extends http.IncomingMessage {
   body?: string;
 }
 
-export interface NodeResponse extends http.ServerResponse {}
+export interface NodeResponse extends http.ServerResponse {
+  name?: string;
+}
