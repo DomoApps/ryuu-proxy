@@ -1,8 +1,0 @@
-{
-  "@appteam6/generator-library": {
-    "appName": "domo-proxy-middleware",
-    "description": "a middleware that provides a proxy for local domo app developmenent",
-    "repoUrl": "",
-    "generatedWithVersion": 0
-  }
-}
