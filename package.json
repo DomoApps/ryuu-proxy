@@ -1,6 +1,6 @@
 {
-  "name": "@appteam6/domo-app-proxy",
-  "version": "0.0.2",
+  "name": "@domoinc/da-proxy",
+  "version": "0.0.3",
   "description": "a middleware that provides a proxy for local domo app development",
   "main": "./dist/bundle.js",
   "scripts": {
