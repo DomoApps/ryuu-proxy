@@ -1,6 +1,6 @@
 {
   "name": "@domoinc/da-proxy",
-  "version": "0.0.3",
+  "version": "1.0.0",
   "description": "a middleware that provides a proxy for local domo app development",
   "main": "./dist/bundle.js",
   "scripts": {
@@ -13,10 +13,8 @@
     "clean": "rm -rf node_modules && npm install"
   },
   "author": "AppTeam6 <Squad.AppTeam6@domo.com>",
-  "repository": "",
-  "files": [
-    "dist"
-  ],
+  "repository": "https://github.com/DomoApps/da-proxy.git",
+  "files": ["dist"],
   "license": "MIT",
   "devDependencies": {
     "@types/chai": "^3.5.2",

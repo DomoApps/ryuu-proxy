@@ -1,11 +1,11 @@
-# domo-app-proxy
+# da-proxy
 
 Simple middleware to add to a local development server while developing Domo Apps. The middleware will intercept any calls to `/data/v1` or `/domo/v1`, proxy an authenticated request to the Domo App service, and pipe the response back so that you can develop your Domo App locally and still get request data from Domo.
 
 ## Installation
 
 ```
-npm install @appteam6/domo-app-proxy --save-dev
+npm install @domoinc/da-proxy --save-dev
 ```
 
 ## Usage
@@ -22,7 +22,7 @@ This library comes with a simple wrapper for Express/Connect middleware.
 
 ```js
 const express = require('express');
-const { DomoAppProxy } = require('domo-app-proxy');
+const { DomoAppProxy } = require('da-proxy');
 
 const app = express();
 
