@@ -5,11 +5,11 @@ import * as nock from 'nock';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
 import { expect } from 'chai';
-import { DomoAppProxy } from '.';
+import { Proxy } from '.';
 import { Manifest, DomoClient } from './lib/models';
 
-describe('DomoAppProxy', () => {
-  let client: DomoAppProxy;
+describe('Proxy', () => {
+  let client: Proxy;
   let loginStub;
 
   const manifest: Manifest = {
@@ -23,7 +23,7 @@ describe('DomoAppProxy', () => {
     loginStub = sinon.stub(login, 'getMostRecentLogin')
       .callsFake(() => ({ instance: 'test.dev.domo.com', sid: 'fake-sid' }));
 
-    client = new DomoAppProxy(manifest);
+    client = new Proxy(manifest);
   });
 
   afterEach(() => {
@@ -31,11 +31,11 @@ describe('DomoAppProxy', () => {
   });
 
   it('should instantiate', () => {
-    expect(DomoAppProxy).to.exist;
-    expect(DomoAppProxy).to.be.an.instanceof(Function);
+    expect(Proxy).to.exist;
+    expect(Proxy).to.be.an.instanceof(Function);
 
     expect(client).to.exist;
-    expect(client).to.be.an.instanceof(DomoAppProxy);
+    expect(client).to.be.an.instanceof(Proxy);
   });
 
   describe('express()', () => {
