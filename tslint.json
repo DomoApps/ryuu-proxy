@@ -1,9 +1,6 @@
 {
-  "extends": [
-    "@appteam6/tslint-config"
-  ],
+  "extends": ["tslint-config-airbnb"],
   "rules": {
-    "no-unused-expression": false,
     "max-line-length": [true, 120]
   }
 }

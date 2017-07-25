@@ -3,7 +3,7 @@ import Transport from './lib/Transport';
 import { DomoException } from './lib/errors';
 import { Manifest } from './lib/models';
 
-export class DomoAppProxy {
+export class Proxy {
   private transport: Transport;
 
   constructor(manifest: Manifest) {

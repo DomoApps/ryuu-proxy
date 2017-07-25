@@ -1,6 +1,6 @@
 {
-  "name": "@appteam6/domo-app-proxy",
-  "version": "0.0.2",
+  "name": "@domoinc/ryuu-proxy",
+  "version": "1.0.0",
   "description": "a middleware that provides a proxy for local domo app development",
   "main": "./dist/bundle.js",
   "scripts": {
@@ -9,16 +9,19 @@
     "tdd": "mocha --opts mocha.opts --watch",
     "build": "rm -rf ./dist && cross-env NODE_ENV=production ./node_modules/.bin/webpack -p",
     "start": "npm run build -- -w",
-    "prepublish": "npm run test && npm run build",
+    "prepublishOnly": "npm run test && npm run build",
     "clean": "rm -rf node_modules && npm install"
   },
   "author": "AppTeam6 <Squad.AppTeam6@domo.com>",
-  "repository": "",
-  "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DomoApps/ryuu-proxy.git"
+  },
+  "files": [
+    "dist"
+  ],
   "license": "MIT",
   "devDependencies": {
-    "@appteam6/tslint-config": "0.0.1",
-    "@appteam6/webpack-config": "^1.1.1",
     "@types/chai": "^3.5.2",
     "@types/express": "^4.0.36",
     "@types/mocha": "^2.2.39",
@@ -30,11 +33,14 @@
     "chai": "^3.5.0",
     "core-js": "^2.4.1",
     "cross-env": "^5.0.1",
+    "json-loader": "^0.5.7",
     "mocha": "^3.3.0",
     "nock": "^9.0.13",
     "sinon": "^2.3.8",
     "ts-node": "^3.1.0",
     "tslint": "^5.2.0",
+    "tslint-config-airbnb": "^5.2.1",
+    "tslint-loader": "^3.5.3",
     "tsutils": "^1.8.0",
     "typescript": "^2.3.2",
     "webpack": "^2.5.1"
