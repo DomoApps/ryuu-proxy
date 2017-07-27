@@ -2,7 +2,6 @@
   "name": "@domoinc/ryuu-proxy",
   "version": "1.0.0",
   "description": "a middleware that provides a proxy for local domo app development",
-  "private": true,
   "main": "./dist/bundle.js",
   "scripts": {
     "lint": "tslint src/**/*.ts --project ./tsconfig.json --type-check",
