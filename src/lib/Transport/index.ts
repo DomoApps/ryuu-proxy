@@ -1,8 +1,8 @@
 import * as Promise from 'core-js/es6/promise';
 import * as Domo from 'ryuu-client';
-import * as login from 'ryuu/util/login';
 import * as request from 'request';
 
+import { getMostRecentLogin } from '../utils';
 import { DomoException } from '../errors';
 import { Manifest, DomoClient, NodeRequest } from '../models';
 
@@ -30,7 +30,7 @@ export default class Transport {
   }
 
   getLastLogin(): DomoClient {
-    const recentLogin = login.getMostRecentLogin();
+    const recentLogin = getMostRecentLogin();
 
     return new Domo(recentLogin.instance, recentLogin.sid, recentLogin.devtoken);
   }
