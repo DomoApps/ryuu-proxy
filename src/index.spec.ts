@@ -1,5 +1,4 @@
 import * as Promise from 'core-js/es6/promise';
-import * as login from 'ryuu/util/login';
 import * as sinon from 'sinon';
 import * as nock from 'nock';
 import * as Domo from 'ryuu-client';
@@ -10,7 +9,6 @@ import { Manifest, DomoClient } from './lib/models';
 
 describe('Proxy', () => {
   let client: Proxy;
-  let loginStub;
 
   const manifest: Manifest = {
     id: 'test-id',
@@ -20,14 +18,7 @@ describe('Proxy', () => {
   };
 
   beforeEach(() => {
-    loginStub = sinon.stub(login, 'getMostRecentLogin')
-      .callsFake(() => ({ instance: 'test.dev.domo.com', sid: 'fake-sid' }));
-
     client = new Proxy(manifest);
-  });
-
-  afterEach(() => {
-    loginStub.restore();
   });
 
   it('should instantiate', () => {
