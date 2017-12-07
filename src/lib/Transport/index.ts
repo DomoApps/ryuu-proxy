@@ -57,9 +57,15 @@ export default class Transport {
   }
 
   isValidRequest(url: string): boolean {
-    const pattern = /^\/(data|domo|dql)\/(v\d)?.+/;
+    const domoPattern = /^\/domo\/(users|avatars)\/v\d/;
+    const dataPattern = /^\/data\/v\d\/.+/;
+    const dqlPattern = /^\/dql\/v\d\/.+/;
 
-    return pattern.test(url);
+    return (
+      domoPattern.test(url)
+      || dataPattern.test(url)
+      || dqlPattern.test(url)
+    );
   }
 
   build(req: NodeRequest): Promise {
