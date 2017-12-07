@@ -57,7 +57,7 @@ export default class Transport {
   }
 
   isValidRequest(url: string): boolean {
-    const pattern = /^\/(data|domo)\/(v\d)?.+/;
+    const pattern = /^\/(data|domo|dql)\/(v\d)?.+/;
 
     return pattern.test(url);
   }
