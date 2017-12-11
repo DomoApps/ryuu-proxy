@@ -139,12 +139,23 @@ describe('Transport', () => {
       expect(client.isValidRequest).to.be.an.instanceOf(Function);
     });
 
-    it('should check for domo app api request', () => {
-      const badUrl = '/url/that/should/fail';
-      const goodUrl = '/data/v1/sales?sum=help';
+    it('should pass /domo requests', () => {
+      expect(client.isValidRequest('/domo/users/v1')).to.be.true;
+      expect(client.isValidRequest('/domo/avatars/v1')).to.be.true;
+    });
 
-      expect(client.isValidRequest(badUrl)).to.be.false;
-      expect(client.isValidRequest(goodUrl)).to.be.true;
+    it('should pass /data requests', () => {
+      expect(client.isValidRequest('/data/v1/alias')).to.be.true;
+    });
+
+    it('should pass /dql requests', () => {
+      expect(client.isValidRequest('/dql/v1/alias')).to.be.true;
+    });
+
+    it('should return false for invalid urls', () => {
+      expect(client.isValidRequest('/bad/url')).to.be.false;
+      expect(client.isValidRequest('/data/alias')).to.be.false;
+      expect(client.isValidRequest('/dql')).to.be.false;
     });
   });
 });
