@@ -131,7 +131,7 @@ describe('Transport', () => {
 
   describe('build()', () => {
     const baseHeaders = {
-      referer: 'test.test',
+      referer: 'test.test?userId=27',
       accept: 'application/json',
     };
 
@@ -151,22 +151,38 @@ describe('Transport', () => {
       expect(client.build).to.be.an.instanceOf(Function);
     });
 
-    it('should build headers and url', (done) => {
+    it('should modify referer, add auth header, and keep other headers', (done) => {
+      const req: Partial<Request> = {
+        url: '/data/v1/valid',
+        headers: {
+          ...baseHeaders,
+          'Custom-Header-1': 'test',
+          'Custom-Header-2': 'test2',
+        },
+      };
+
+      const expHeaders = {
+        ...req.headers,
+        referer: 'test.test?userId=27&context=fake-context',
+
+        // @TODO: update for OAuth
+        'X-DOMO-Developer-Token': 'stub',
+      };
+  
+      client.build(req as Request).then((options) => {
+        expect(options.headers).to.deep.equal(expHeaders);
+        done();
+      });
+    });
+
+    it('should build full URL', (done) => {
       const req: Partial<Request> = {
         url: '/data/v1/test?fields=field1,field2&avg=field2',
         headers: baseHeaders,
       };
-
+  
       client.build(req as Request).then((options) => {
-        expect(options.url).to.equal(`${domoDomain}/data/v1/test?fields=field1,field2&avg=field2`);
-        
-        expect(options.headers).to.have.all.keys([
-          'X-DOMO-Developer-Token', // @TODO: update for OAuth
-          'referer',
-          'accept',
-          'content-type',
-        ]);
-
+        expect(options.url).to.equal(`${domoDomain}/data/v1/test?fields=field1,field2&avg=field2`);  
         done();
       });
     });
