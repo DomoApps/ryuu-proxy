@@ -30,17 +30,3 @@ export interface Manifest {
     height: number;
   };
 }
-
-export interface NodeRequest extends http.IncomingMessage {
-  url: string;
-  method: string;
-  headers: {
-    referer: string,
-    accept?: string,
-  };
-  body?: string;
-}
-
-export interface NodeResponse extends http.ServerResponse {
-  name?: string;
-}
