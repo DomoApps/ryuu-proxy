@@ -6,9 +6,11 @@ import * as request from 'request';
 import { expect } from 'chai';
 import { Proxy } from '.';
 import { Manifest, DomoClient } from './lib/models';
+import Transport from './lib/Transport';
 
 describe('Proxy', () => {
   let client: Proxy;
+  let clientStub;
 
   const manifest: Manifest = {
     id: 'test-id',
@@ -18,7 +20,14 @@ describe('Proxy', () => {
   };
 
   beforeEach(() => {
+    clientStub = sinon.stub(Transport.prototype, 'getLastLogin')
+      .callsFake(() => new Domo('test.dev.domo.com', 'test-sid', 'test-token'));
+    
     client = new Proxy(manifest);
+  });
+
+  afterEach(() => {
+    clientStub.restore();
   });
 
   it('should instantiate', () => {
