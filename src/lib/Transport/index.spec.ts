@@ -3,23 +3,35 @@ import * as sinon from 'sinon';
 import * as nock from 'nock';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
+import { Request } from 'express';
 import { expect } from 'chai';
-import Transport from '.';
+import { default as Transport } from '.';
 import { Manifest, DomoClient } from '../models';
 
 describe('Transport', () => {
+  const lastLogin = 'customer.domo.com';
+  const domoDomain = 'https://88e99055-1520-440c-99a0-7b2a27469391.domoapps.test.domo.com';
+
   let client: Transport;
   let manifest: Manifest;
   let clientStub;
   let promiseStub;
 
   beforeEach((done) => {
-    // stub constructor dependencies
-    clientStub = sinon.stub(Transport.prototype, 'getLastLogin')
-      .callsFake(() => new Domo('test.dev.domo.com', 'test-sid', 'test-token'));
+    clientStub = sinon
+      .stub(Transport.prototype, 'getLastLogin')
+      .callsFake(() => {
+        const domo = sinon.createStubInstance(Domo);
+        domo.getAuthHeader.returns({ 'X-DOMO-Developer-Token': 'stub' });
+        domo.instance = 'test.domo.com';
+        domo.server = 'http://test.domo.com';
 
-    promiseStub = sinon.stub(Transport.prototype, 'getDomoDomain')
-      .callsFake(() => Promise.resolve('https://88e99055-1520-440c-99a0-7b2a27469391.domoapps.dev.domo.com'));
+        return domo;
+      });
+
+    promiseStub = sinon
+      .stub(Transport.prototype, 'getDomoDomain')
+      .callsFake(() => Promise.resolve(domoDomain));
 
     manifest = {
       id: 'test-id',
@@ -43,12 +55,8 @@ describe('Transport', () => {
 
     expect(client).to.exist;
     expect(client).to.be.an.instanceof(Transport);
-    expect(client.getManifest()).to.exist;
-    expect(client.getManifest()).to.be.equal(manifest);
-    expect(client.getDomoClient()).to.exist;
-    expect(client.getDomoClient()).to.be.an.instanceOf(Domo);
-    expect(clientStub.calledOnce).to.be.true;
-    expect(promiseStub.calledOnce).to.be.true;
+    expect(client.getManifest).to.exist;
+    expect(client.getDomoClient).to.exist;
   });
 
   describe('getDomoClient()', () => {
@@ -71,7 +79,7 @@ describe('Transport', () => {
     });
 
     it('should return env from instance string', () => {
-      const env: string = client.getEnv();
+      const env: string = client.getEnv('test.dev.domo.com');
       expect(env).to.equal('dev.domo.com');
     });
   });
@@ -79,7 +87,7 @@ describe('Transport', () => {
   describe('getDomoDomain()', () => {
     beforeEach(() => {
       const OK = 200;
-      nock(client.getDomoClient().server)
+      nock('http://test.domo.com')
         .get('/api/content/v1/mobile/environment')
         .reply(OK, JSON.stringify({ domoappsDomain: 'domoapps.dev2.domo.com' }));
 
@@ -107,18 +115,13 @@ describe('Transport', () => {
   describe('createContext()', () => {
     beforeEach(() => {
       const OK = 200;
-      nock(client.getDomoClient().server).post('/domoapps/apps/v2/contexts').reply(OK, [{ id: 'test-context' }]);
+      nock('http://test.domo.com')
+        .post('/domoapps/apps/v2/contexts')
+        .reply(OK, [{ id: 'test-context' }]);
     });
 
-    it('should instantiate', () => {
-      expect(client.createContext).to.exist;
-      expect(client.createContext).to.be.an.instanceOf(Function);
-    });
-
-    it('should return promise', (done) => {
-      const promise: Promise = client.createContext();
-      expect(promise).to.exist;
-      promise.then((res) => {
+    it('should POST to /domoapps contexts', (done) => {
+      client.createContext().then((res) => {
         expect(res).to.exist;
         expect(res.id).to.equal('test-context');
         done();
@@ -127,9 +130,74 @@ describe('Transport', () => {
   });
 
   describe('build()', () => {
+    const baseHeaders = {
+      referer: 'test.test',
+      accept: 'application/json',
+    };
+
+    let contextStub;
+
+    beforeEach(() => {
+      contextStub = sinon.stub(client, 'createContext')
+        .returns(Promise.resolve({ id: 'fake-context' }));
+    });
+
+    afterEach(() => {
+      contextStub.restore();
+    });
+
     it('should instantiate', () => {
       expect(client.build).to.exist;
       expect(client.build).to.be.an.instanceOf(Function);
+    });
+
+    it('should build headers and url', (done) => {
+      const req: Partial<Request> = {
+        url: '/data/v1/test?fields=field1,field2&avg=field2',
+        headers: baseHeaders,
+      };
+
+      client.build(req as Request).then((options) => {
+        expect(options.url).to.equal(`${domoDomain}/data/v1/test?fields=field1,field2&avg=field2`);
+        
+        expect(options.headers).to.have.all.keys([
+          'X-DOMO-Developer-Token', // @TODO: update for OAuth
+          'referer',
+          'accept',
+          'content-type',
+        ]);
+
+        done();
+      });
+    });
+
+    it('should use original request method', (done) => {
+      const req: Partial<Request> = {
+        url: '/data/v1/valid',
+        method: 'it does not matter',
+        headers: baseHeaders,
+      };
+
+      client.build(req as Request).then((options) => {
+        expect(options.method).to.equal(req.method);
+        done();
+      });
+    });
+
+    it('should not munch req body', (done) => {
+      const req: Partial<Request> = {
+        url: '/data/v1/valid',
+        headers: baseHeaders,
+        body: {
+          name: 'json',
+          message: 'should not get mutated',
+        },
+      };
+
+      client.build(req as Request).then((options) => {
+        expect(options.body).to.deep.equal(req.body);
+        done();
+      });
     });
   });
 
