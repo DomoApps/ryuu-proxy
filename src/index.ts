@@ -1,4 +1,5 @@
 import * as Promise from 'core-js/es6/promise';
+import { Request, Response, NextFunction } from 'express';
 import Transport from './lib/Transport';
 import { DomoException } from './lib/errors';
 import { Manifest } from './lib/models';
@@ -10,15 +11,22 @@ export class Proxy {
     this.transport = new Transport(manifest);
   }
 
-  express = () => (req: any, res: any, next: any): Promise =>
-    this.transport.build(req)
-      .then(args => this.transport.get(args).pipe(res))
+  express = () => (req: Request, res: Response, next: NextFunction): Promise => (
+    this.transport
+      .build(req)
+      .then(options => this.transport.request(options).pipe(res))
       .catch((err) => {
-        if (err.name === 'DomoException') res.status(err.statusCode).json(err);
-        else next();
+        if (err.name === 'DomoException') {
+          res.status(err.statusCode).json(err);
+        } else {
+          next();
+        }
       })
+  )
 
-  stream = (req: any): Promise =>
-    this.transport.build(req)
-      .then(this.transport.get)
+  stream = (req: Request): Promise => (
+    this.transport
+      .build(req)
+      .then(this.transport.request)
+  )
 }
