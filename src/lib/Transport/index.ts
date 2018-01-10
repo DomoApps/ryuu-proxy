@@ -118,6 +118,9 @@ export default class Transport {
           body: req.body,
         };
 
+        // @TODO: only for debugging
+        console.log(options);
+
         return options;
       })
       .catch((err) => {
