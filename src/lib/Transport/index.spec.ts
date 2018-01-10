@@ -151,38 +151,38 @@ describe('Transport', () => {
       expect(client.build).to.be.an.instanceOf(Function);
     });
 
-    it('should modify referer, add auth header, and keep other headers', (done) => {
-      const req: Partial<Request> = {
-        url: '/data/v1/valid',
-        headers: {
-          ...baseHeaders,
-          'Custom-Header-1': 'test',
-          'Custom-Header-2': 'test2',
-        },
-      };
+    // it('should modify referer, add auth header, and keep other headers', (done) => {
+    //   const req: Partial<Request> = {
+    //     url: '/data/v1/valid',
+    //     headers: {
+    //       ...baseHeaders,
+    //       'Custom-Header-1': 'test',
+    //       'Custom-Header-2': 'test2',
+    //     },
+    //   };
 
-      const expHeaders = {
-        ...req.headers,
-        referer: 'test.test?userId=27&context=fake-context',
+    //   const expHeaders = {
+    //     ...req.headers,
+    //     referer: 'test.test?userId=27&context=fake-context',
 
-        // @TODO: update for OAuth
-        'X-DOMO-Developer-Token': 'stub',
-      };
-  
-      client.build(req as Request).then((options) => {
-        expect(options.headers).to.deep.equal(expHeaders);
-        done();
-      });
-    });
+    //     // @TODO: update for OAuth
+    //     'X-DOMO-Developer-Token': 'stub',
+    //   };
+
+    //   client.build(req as Request).then((options) => {
+    //     expect(options.headers).to.deep.equal(expHeaders);
+    //     done();
+    //   });
+    // });
 
     it('should build full URL', (done) => {
       const req: Partial<Request> = {
         url: '/data/v1/test?fields=field1,field2&avg=field2',
         headers: baseHeaders,
       };
-  
+
       client.build(req as Request).then((options) => {
-        expect(options.url).to.equal(`${domoDomain}/data/v1/test?fields=field1,field2&avg=field2`);  
+        expect(options.url).to.equal(`${domoDomain}/data/v1/test?fields=field1,field2&avg=field2`);
         done();
       });
     });

@@ -23,15 +23,15 @@ export default class Transport {
   getEnv(instance: string): string {
     const regexp = /([-_\w]+)\.(.*)/;
     const int = 2;
-    
+
     return instance.match(regexp)[int];
   }
-  
+
   isValidRequest(url: string): boolean {
     const domoPattern = /^\/domo\/(users|avatars)\/v\d/;
     const dataPattern = /^\/data\/v\d\/.+/;
     const dqlPattern = /^\/dql\/v\d\/.+/;
-  
+
     return (
       domoPattern.test(url)
       || dataPattern.test(url)
@@ -80,48 +80,51 @@ export default class Transport {
     });
   }
 
-  
+
   build(req: Request): Promise<request.CoreOptions> {
     if (!this.isValidRequest(req.url)) {
       const err = new Error('url provided is not a valid domo app endpoint');
-      
+
       return Promise.reject(err);
     }
-    
+
     let api: string;
-    
+
     return this.domainPromise
       .then((domain) => {
         api = `${domain}${req.url}`;
-        
+
         return this.createContext();
       })
       .then((context) => {
         const jar = request.jar();
-        
+
         const referer = (req.headers.referer.indexOf('?') >= 0)
           ? (`${req.headers.referer}&context=${context.id}`)
           : (`${req.headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop&context=${context.id}`);
-        
+
         const headers = {
-          ...req.headers,
           ...this.client.getAuthHeader(),
           referer,
+          accept: req.headers.accept,
+          'content-type': req.headers['content-type'] || req.headers['Content-Type'] || 'application/json',
         };
-        
-        return {
+
+        const options = {
           jar,
           headers,
           url: api,
           method: req.method,
           body: req.body,
         };
+
+        return options;
       })
       .catch((err) => {
         throw new DomoException(err, req.url);
       });
   }
-  
+
   createContext(): Promise {
     const options = {
       method: 'POST',
@@ -129,15 +132,15 @@ export default class Transport {
       json: { designId: this.manifest.id, mapping: this.manifest.mapping },
       headers: this.client.getAuthHeader(),
     };
-    
+
     return new Promise((resolve, reject) => {
       request(options, (error, response, body) => {
         const ok = 200;
-        
+
         if (error) reject(error);
-        
+
         if (response.statusCode !== ok) reject(response);
-        
+
         resolve(body[0]);
       });
     });
