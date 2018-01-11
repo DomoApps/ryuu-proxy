@@ -1,6 +1,7 @@
 import * as Promise from 'core-js/es6/promise';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
+import * as anyBody from 'body/any';
 import { Request } from 'express';
 
 import { getMostRecentLogin } from '../utils';
@@ -80,6 +81,31 @@ export default class Transport {
     });
   }
 
+  parseBody(req: Request): Promise<string|void> {
+    return new Promise((resolve) => {
+      const body = [];
+
+      try {
+        req.on('data', chunk => body.push(chunk));
+
+        req.on('end', () => {
+          const contentType = req.headers['Content-Type'] || req.headers['content-type'];
+          const raw = Buffer.concat(body).toString();
+
+          if (contentType === 'application/json') {
+            resolve(JSON.parse(raw));
+          } else {
+            resolve(raw);
+          }
+        });
+
+        req.on('error', () => resolve(null));
+      } catch (e) {
+        resolve();
+      }
+    });
+  }
+
   build(req: Request): Promise<request.CoreOptions> {
     if (!this.isValidRequest(req.url)) {
       const err = new Error('url provided is not a valid domo app endpoint');
@@ -95,7 +121,7 @@ export default class Transport {
 
         return this.createContext();
       })
-      .then((context) => {
+      .then((context, body) => {
         const jar = request.jar();
 
         const referer = (req.headers.referer.indexOf('?') >= 0)
@@ -113,10 +139,15 @@ export default class Transport {
           headers,
           url: api,
           method: req.method,
-          body: req.body,
+          body: null,
         };
 
-        return options;
+        return this.parseBody(req)
+          .then((body) => {
+            options.body = body;
+
+            return options;
+          });
       })
       .catch((err) => {
         throw new DomoException(err, req.url);
