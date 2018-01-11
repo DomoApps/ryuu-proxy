@@ -1,5 +1,7 @@
 import * as Promise from 'core-js/es6/promise';
 import { Request, Response, NextFunction } from 'express';
+import { IncomingMessage } from 'http';
+
 import Transport from './lib/Transport';
 import { DomoException } from './lib/errors';
 import { Manifest } from './lib/models';
@@ -24,7 +26,7 @@ export class Proxy {
       })
   )
 
-  stream = (req: Request): Promise => (
+  stream = (req: IncomingMessage): Promise => (
     this.transport
       .build(req)
       .then(this.transport.request)

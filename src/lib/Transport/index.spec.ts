@@ -3,8 +3,11 @@ import * as sinon from 'sinon';
 import * as nock from 'nock';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
+import * as MockReq from 'mock-req';
+import { IncomingMessage } from 'http';
 import { Request } from 'express';
 import { expect } from 'chai';
+
 import { default as Transport } from '.';
 import { Manifest, DomoClient } from '../models';
 
@@ -152,85 +155,102 @@ describe('Transport', () => {
     });
 
     it('should modify referer', () => {
-      const req: Partial<Request> = {
+      const req: Partial<IncomingMessage> = {
         url: '/data/v1/valid',
         headers: baseHeaders,
       };
 
-      client.build(req as Request).then((options) => {
+      client.build(req as IncomingMessage).then((options) => {
         expect(options.headers).to.have.property('Referer', 'test.test?userId=27&context=fake-context');
       });
     });
 
     it('should add auth header', () => {
-      const req: Partial<Request> = {
+      const req: Partial<IncomingMessage> = {
         url: '/data/v1/valid',
         headers: baseHeaders,
       };
 
-      client.build(req as Request).then((options) => {
+      client.build(req as IncomingMessage).then((options) => {
         expect(options.headers).to.have.property('X-Domo-Authentication', 'stub');
       });
     });
 
     it('should add json content-type header if none exist', () => {
-      const req: Partial<Request> = {
+      const req: Partial<IncomingMessage> = {
         url: '/data/v1/valid',
         headers: baseHeaders,
       };
 
-      client.build(req as Request).then((options) => {
+      client.build(req as IncomingMessage).then((options) => {
         expect(options.headers).to.have.property('Content-Type', 'application/json');
       });
     });
 
     it('should build full URL', (done) => {
-      const req: Partial<Request> = {
+      const req: Partial<IncomingMessage> = {
         url: '/data/v1/test?fields=field1,field2&avg=field2',
         headers: baseHeaders,
       };
 
-      client.build(req as Request).then((options) => {
+      client.build(req as IncomingMessage).then((options) => {
         expect(options.url).to.equal(`${domoDomain}/data/v1/test?fields=field1,field2&avg=field2`);
         done();
       });
     });
 
     it('should use original request method', (done) => {
-      const req: Partial<Request> = {
+      const req: Partial<IncomingMessage> = {
         url: '/data/v1/valid',
         method: 'it does not matter',
         headers: baseHeaders,
       };
 
-      client.build(req as Request).then((options) => {
+      client.build(req as IncomingMessage).then((options) => {
         expect(options.method).to.equal(req.method);
         done();
       });
     });
 
-    // it('should not munch req body', (done) => {
-    //   const req: Partial<Request> = {
-    //     url: '/data/v1/valid',
-    //     headers: {
-    //       ...baseHeaders,
-    //       'Content-Type': 'application/json',
-    //     },
-    //     body: {
-    //       name: 'json',
-    //       message: 'should not get mutated',
-    //     },
-    //   };
+    it('should not munch payload JSON', (done) => {
+      const body = { name: 'json', message: 'should not get mutated' };
+      const req = new MockReq({
+        url: '/data/v1/valid',
+        method: 'POST',
+        headers: {
+          ...baseHeaders,
+          'Content-Type': 'application/json',
+        },
+      });
 
-    //   const stub = sinon.stub();
-    //   stub.withArgs('data').returns(req.body);
-    //   req.on = stub;
+      req.write(body);
+      req.end();
 
-    //   client.build(req as Request).then((options) => {
-    //     expect(options.body).to.deep.equal(req.body);
-    //     done();
-    //   });
-    // });
+      client.build(req).then((options) => {
+        expect(options.body).to.deep.equal(body);
+        done();
+      });
+    });
+
+    it('should no munch payload text', (done) => {
+      const body = 'example,csv,string';
+      const req = new MockReq({
+        url: '/data/v1/valid',
+        method: 'POST',
+        headers: {
+          ...baseHeaders,
+          'Content-Type': 'text/csv',
+        },
+      });
+
+      req.write(body);
+      req.end();
+
+      client.build(req).then((options) => {
+        expect(options.body).to.deep.equal(body);
+        done();
+      });
+    });
   });
 
   describe('isValidRequest()', () => {

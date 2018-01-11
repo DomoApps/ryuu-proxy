@@ -1,7 +1,7 @@
 import * as Promise from 'core-js/es6/promise';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
-import { Request } from 'express';
+import { IncomingMessage } from 'http';
 
 import { getMostRecentLogin } from '../utils';
 import { DomoException } from '../errors';
@@ -80,32 +80,7 @@ export default class Transport {
     });
   }
 
-  parseBody(req: Request): Promise<string|void> {
-    return new Promise((resolve) => {
-      const body = [];
-
-      try {
-        req.on('data', chunk => body.push(chunk));
-
-        req.on('end', () => {
-          const contentType = req.headers['Content-Type'] || req.headers['content-type'];
-          const raw = Buffer.concat(body).toString();
-
-          if (contentType === 'application/json') {
-            resolve(JSON.parse(raw));
-          } else {
-            resolve(raw);
-          }
-        });
-
-        req.on('error', () => resolve(null));
-      } catch (e) {
-        resolve();
-      }
-    });
-  }
-
-  build(req: Request): Promise<request.CoreOptions> {
+  build(req: IncomingMessage): Promise<request.CoreOptions> {
     if (!this.isValidRequest(req.url)) {
       const err = new Error('url provided is not a valid domo app endpoint');
 
@@ -171,6 +146,31 @@ export default class Transport {
 
         resolve(body[0]);
       });
+    });
+  }
+
+  private parseBody(req: IncomingMessage): Promise<string|void> {
+    return new Promise((resolve) => {
+      const body = [];
+
+      try {
+        req.on('data', chunk => body.push(chunk));
+
+        req.on('end', () => {
+          const contentType = req.headers['Content-Type'] || req.headers['content-type'];
+          const raw = Buffer.concat(body).toString();
+
+          if (contentType === 'application/json') {
+            resolve(JSON.parse(raw));
+          } else {
+            resolve(raw);
+          }
+        });
+
+        req.on('error', () => resolve(null));
+      } catch (e) {
+        resolve();
+      }
     });
   }
 }
