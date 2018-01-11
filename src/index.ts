@@ -19,13 +19,7 @@ export class Proxy {
         this.transport
           .build(req)
           .then(options => this.transport.request(options).pipe(res))
-          .catch((err) => {
-            if (err.name === 'DomoException') {
-              res.status(err.statusCode).json(err);
-            } else {
-              next(err);
-            }
-          })
+          .catch(err => res.status(err.statusCode).send(err))
         )
       : next();
   }
