@@ -27,7 +27,7 @@ export default class Transport {
     return instance.match(regexp)[int];
   }
 
-  isValidRequest(url: string): boolean {
+  isDomoRequest(url: string): boolean {
     const domoPattern = /^\/domo\/.+\/v\d/;
     const dataPattern = /^\/data\/v\d\/.+/;
     const dqlPattern = /^\/dql\/v\d\/.+/;
@@ -81,12 +81,6 @@ export default class Transport {
   }
 
   build(req: IncomingMessage): Promise<request.CoreOptions> {
-    if (!this.isValidRequest(req.url)) {
-      const err = new Error('url provided is not a valid domo app endpoint');
-
-      return Promise.reject(err);
-    }
-
     let api: string;
 
     return this.domainPromise
@@ -116,15 +110,11 @@ export default class Transport {
           body: null,
         };
 
-        return this.parseBody(req)
-          .then((body) => {
-            options.body = body;
+        return this.parseBody(req).then((body) => {
+          options.body = body;
 
-            return options;
-          });
-      })
-      .catch((err) => {
-        throw new DomoException(err, req.url);
+          return options;
+        });
       });
   }
 

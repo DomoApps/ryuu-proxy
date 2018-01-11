@@ -13,22 +13,28 @@ export class Proxy {
     this.transport = new Transport(manifest);
   }
 
-  express = () => (req: Request, res: Response, next: NextFunction): Promise => (
-    this.transport
-      .build(req)
-      .then(options => this.transport.request(options).pipe(res))
-      .catch((err) => {
-        if (err.name === 'DomoException') {
-          res.status(err.statusCode).json(err);
-        } else {
-          next();
-        }
-      })
-  )
+  express = () => (req: Request, res: Response, next: NextFunction): Promise => {
+    return (this.transport.isDomoRequest(req.url))
+      ? (
+        this.transport
+          .build(req)
+          .then(options => this.transport.request(options).pipe(res))
+          .catch((err) => {
+            if (err.name === 'DomoException') {
+              res.status(err.statusCode).json(err);
+            } else {
+              next(err);
+            }
+          })
+        )
+      : next();
+  }
 
-  stream = (req: IncomingMessage): Promise => (
-    this.transport
-      .build(req)
-      .then(this.transport.request)
-  )
+  stream = (req: IncomingMessage): Promise => {
+    if (this.transport.isDomoRequest(req.url)) {
+      return this.transport
+        .build(req)
+        .then(this.transport.request);
+    }
+  }
 }

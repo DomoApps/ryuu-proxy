@@ -253,30 +253,30 @@ describe('Transport', () => {
     });
   });
 
-  describe('isValidRequest()', () => {
+  describe('isDomoRequest()', () => {
     it('should instantiate', () => {
-      expect(client.isValidRequest).to.exist;
-      expect(client.isValidRequest).to.be.an.instanceOf(Function);
+      expect(client.isDomoRequest).to.exist;
+      expect(client.isDomoRequest).to.be.an.instanceOf(Function);
     });
 
     it('should pass /domo requests', () => {
-      expect(client.isValidRequest('/domo/users/v1')).to.be.true;
-      expect(client.isValidRequest('/domo/avatars/v1')).to.be.true;
-      expect(client.isValidRequest('/domo/other/v1')).to.be.true;
+      expect(client.isDomoRequest('/domo/users/v1')).to.be.true;
+      expect(client.isDomoRequest('/domo/avatars/v1')).to.be.true;
+      expect(client.isDomoRequest('/domo/other/v1')).to.be.true;
     });
 
     it('should pass /data requests', () => {
-      expect(client.isValidRequest('/data/v1/alias')).to.be.true;
+      expect(client.isDomoRequest('/data/v1/alias')).to.be.true;
     });
 
     it('should pass /dql requests', () => {
-      expect(client.isValidRequest('/dql/v1/alias')).to.be.true;
+      expect(client.isDomoRequest('/dql/v1/alias')).to.be.true;
     });
 
     it('should return false for invalid urls', () => {
-      expect(client.isValidRequest('/bad/url')).to.be.false;
-      expect(client.isValidRequest('/data/alias')).to.be.false;
-      expect(client.isValidRequest('/dql')).to.be.false;
+      expect(client.isDomoRequest('/bad/url')).to.be.false;
+      expect(client.isDomoRequest('/data/alias')).to.be.false;
+      expect(client.isDomoRequest('/dql')).to.be.false;
     });
   });
 });
