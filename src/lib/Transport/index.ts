@@ -1,7 +1,6 @@
 import * as Promise from 'core-js/es6/promise';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
-import * as anyBody from 'body/any';
 import { Request } from 'express';
 
 import { getMostRecentLogin } from '../utils';
