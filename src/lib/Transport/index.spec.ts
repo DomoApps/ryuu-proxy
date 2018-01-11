@@ -158,7 +158,7 @@ describe('Transport', () => {
       };
 
       client.build(req as Request).then((options) => {
-        expect(options.headers.referer).to.equal('test.test?userId=27&context=fake-context');
+        expect(options.headers).to.have.property('Referer', 'test.test?userId=27&context=fake-context');
       });
     });
 
@@ -181,29 +181,6 @@ describe('Transport', () => {
 
       client.build(req as Request).then((options) => {
         expect(options.headers).to.have.property('Content-Type', 'application/json');
-      });
-    });
-
-    it('should pass through original request headers', (done) => {
-      const req: Partial<Request> = {
-        url: '/data/v1/valid',
-        headers: {
-          ...baseHeaders,
-          'Content-Type': 'text/plain',
-          'Custom-Header-1': 'test',
-          'Custom-Header-2': 'test2',
-        },
-      };
-
-      const expHeaders = {
-        ...req.headers,
-        referer: 'test.test?userId=27&context=fake-context',
-        'X-Domo-Authentication': 'stub',
-      };
-
-      client.build(req as Request).then((options) => {
-        expect(options.headers).to.deep.equal(expHeaders);
-        done();
       });
     });
 
