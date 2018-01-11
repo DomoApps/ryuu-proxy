@@ -28,7 +28,7 @@ export default class Transport {
   }
 
   isValidRequest(url: string): boolean {
-    const domoPattern = /^\/domo\/(users|avatars)\/v\d/;
+    const domoPattern = /^\/domo\/.+\/v\d/;
     const dataPattern = /^\/data\/v\d\/.+/;
     const dqlPattern = /^\/dql\/v\d\/.+/;
 
@@ -80,7 +80,6 @@ export default class Transport {
     });
   }
 
-
   build(req: Request): Promise<request.CoreOptions> {
     if (!this.isValidRequest(req.url)) {
       const err = new Error('url provided is not a valid domo app endpoint');
@@ -104,11 +103,12 @@ export default class Transport {
           : (`${req.headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop&context=${context.id}`);
 
         const headers = {
+          ...req.headers,
           ...this.client.getAuthHeader(),
           referer,
-          accept: req.headers.accept,
-          'content-type': req.headers['content-type'] || req.headers['Content-Type'] || 'application/json',
         };
+
+        if (!req.headers['content-type'] && !req.headers['Content-Type']) headers['Content-Type'] = 'application/json';
 
         const options = {
           jar,
@@ -117,9 +117,6 @@ export default class Transport {
           method: req.method,
           body: req.body,
         };
-
-        // @TODO: only for debugging
-        console.log(options);
 
         return options;
       })

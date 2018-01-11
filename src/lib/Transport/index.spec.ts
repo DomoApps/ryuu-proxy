@@ -22,7 +22,7 @@ describe('Transport', () => {
       .stub(Transport.prototype, 'getLastLogin')
       .callsFake(() => {
         const domo = sinon.createStubInstance(Domo);
-        domo.getAuthHeader.returns({ 'X-DOMO-Developer-Token': 'stub' });
+        domo.getAuthHeader.returns({ 'X-Domo-Authentication': 'stub' });
         domo.instance = 'test.domo.com';
         domo.server = 'http://test.domo.com';
 
@@ -151,29 +151,61 @@ describe('Transport', () => {
       expect(client.build).to.be.an.instanceOf(Function);
     });
 
-    // it('should modify referer, add auth header, and keep other headers', (done) => {
-    //   const req: Partial<Request> = {
-    //     url: '/data/v1/valid',
-    //     headers: {
-    //       ...baseHeaders,
-    //       'Custom-Header-1': 'test',
-    //       'Custom-Header-2': 'test2',
-    //     },
-    //   };
+    it('should modify referer', () => {
+      const req: Partial<Request> = {
+        url: '/data/v1/valid',
+        headers: baseHeaders,
+      };
 
-    //   const expHeaders = {
-    //     ...req.headers,
-    //     referer: 'test.test?userId=27&context=fake-context',
+      client.build(req as Request).then((options) => {
+        expect(options.headers.referer).to.equal('test.test?userId=27&context=fake-context');
+      });
+    });
 
-    //     // @TODO: update for OAuth
-    //     'X-DOMO-Developer-Token': 'stub',
-    //   };
+    it('should add auth header', () => {
+      const req: Partial<Request> = {
+        url: '/data/v1/valid',
+        headers: baseHeaders,
+      };
 
-    //   client.build(req as Request).then((options) => {
-    //     expect(options.headers).to.deep.equal(expHeaders);
-    //     done();
-    //   });
-    // });
+      client.build(req as Request).then((options) => {
+        expect(options.headers).to.have.property('X-Domo-Authentication', 'stub');
+      });
+    });
+
+    it('should add json content-type header if none exist', () => {
+      const req: Partial<Request> = {
+        url: '/data/v1/valid',
+        headers: baseHeaders,
+      };
+
+      client.build(req as Request).then((options) => {
+        expect(options.headers).to.have.property('Content-Type', 'application/json');
+      });
+    });
+
+    it('should pass through original request headers', (done) => {
+      const req: Partial<Request> = {
+        url: '/data/v1/valid',
+        headers: {
+          ...baseHeaders,
+          'Content-Type': 'text/plain',
+          'Custom-Header-1': 'test',
+          'Custom-Header-2': 'test2',
+        },
+      };
+
+      const expHeaders = {
+        ...req.headers,
+        referer: 'test.test?userId=27&context=fake-context',
+        'X-Domo-Authentication': 'stub',
+      };
+
+      client.build(req as Request).then((options) => {
+        expect(options.headers).to.deep.equal(expHeaders);
+        done();
+      });
+    });
 
     it('should build full URL', (done) => {
       const req: Partial<Request> = {
@@ -226,6 +258,7 @@ describe('Transport', () => {
     it('should pass /domo requests', () => {
       expect(client.isValidRequest('/domo/users/v1')).to.be.true;
       expect(client.isValidRequest('/domo/avatars/v1')).to.be.true;
+      expect(client.isValidRequest('/domo/other/v1')).to.be.true;
     });
 
     it('should pass /data requests', () => {
