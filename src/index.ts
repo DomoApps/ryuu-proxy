@@ -19,7 +19,12 @@ export class Proxy {
         this.transport
           .build(req)
           .then(options => this.transport.request(options).pipe(res))
-          .catch(err => res.status(err.statusCode || 500).send(err))
+          .catch((err) => {
+            const status = err.statusCode || 500;
+            const msg = (err.body !== undefined) ? err.body : err;
+
+            res.status(status).send(msg);
+          })
         )
       : next();
   }

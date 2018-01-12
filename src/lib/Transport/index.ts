@@ -80,6 +80,25 @@ export default class Transport {
     });
   }
 
+  createContext(): Promise {
+    const options = {
+      method: 'POST',
+      url: `${this.client.server}/domoapps/apps/v2/contexts`,
+      json: { designId: this.manifest.id, mapping: this.manifest.mapping },
+      headers: this.client.getAuthHeader(),
+    };
+
+    return new Promise((resolve, reject) => {
+      request(options, (error, response, body) => {
+        if (error) reject(error);
+
+        if (response.statusCode !== 200) reject(response);
+
+        resolve(body[0]);
+      });
+    });
+  }
+
   build(req: IncomingMessage): Promise<request.CoreOptions> {
     let api: string;
 
@@ -118,27 +137,6 @@ export default class Transport {
       });
   }
 
-  createContext(): Promise {
-    const options = {
-      method: 'POST',
-      url: `${this.client.server}/domoapps/apps/v2/contexts`,
-      json: { designId: this.manifest.id, mapping: this.manifest.mapping },
-      headers: this.client.getAuthHeader(),
-    };
-
-    return new Promise((resolve, reject) => {
-      request(options, (error, response, body) => {
-        const ok = 200;
-
-        if (error) reject(error);
-
-        if (response.statusCode !== ok) reject(response);
-
-        resolve(body[0]);
-      });
-    });
-  }
-
   private parseBody(req: IncomingMessage): Promise<string|void> {
     return new Promise((resolve) => {
       const body = [];
@@ -150,11 +148,7 @@ export default class Transport {
           const contentType = req.headers['Content-Type'] || req.headers['content-type'];
           const raw = Buffer.concat(body).toString();
 
-          if (contentType === 'application/json') {
-            resolve(JSON.parse(raw));
-          } else {
-            resolve(raw);
-          }
+          resolve(raw);
         });
 
         req.on('error', () => resolve(null));

@@ -212,7 +212,7 @@ describe('Transport', () => {
       });
     });
 
-    it('should not munch payload JSON', (done) => {
+    it('should forward original JSON payload', (done) => {
       const body = { name: 'json', message: 'should not get mutated' };
       const req = new MockReq({
         url: '/data/v1/valid',
@@ -227,12 +227,12 @@ describe('Transport', () => {
       req.end();
 
       client.build(req).then((options) => {
-        expect(options.body).to.deep.equal(body);
+        expect(options.body).to.deep.equal(JSON.stringify(body));
         done();
       });
     });
 
-    it('should no munch payload text', (done) => {
+    it('should forward original Text payload', (done) => {
       const body = 'example,csv,string';
       const req = new MockReq({
         url: '/data/v1/valid',
