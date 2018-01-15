@@ -145,9 +145,7 @@ export default class Transport {
         req.on('data', chunk => body.push(chunk));
 
         req.on('end', () => {
-          const contentType = req.headers['Content-Type'] || req.headers['content-type'];
           const raw = Buffer.concat(body).toString();
-
           resolve(raw);
         });
 
