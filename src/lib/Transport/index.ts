@@ -116,10 +116,13 @@ export default class Transport {
           : (`${req.headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop&context=${context.id}`);
 
         const headers = {
+          ...req.headers,
           ...this.client.getAuthHeader(),
-          'Content-Type': req.headers['content-type'] || req.headers['Content-Type'] || 'application/json',
-          Referer: referer,
+          referer,
         };
+
+        // delete original headers that don't mess with service
+        delete headers.host;
 
         const options = {
           jar,
