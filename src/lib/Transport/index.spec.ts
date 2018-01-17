@@ -154,18 +154,19 @@ describe('Transport', () => {
       expect(client.build).to.be.an.instanceOf(Function);
     });
 
-    it('should modify referer', () => {
+    it('should modify referer', (done) => {
       const req: Partial<IncomingMessage> = {
         url: '/data/v1/valid',
         headers: baseHeaders,
       };
 
       client.build(req as IncomingMessage).then((options) => {
-        expect(options.headers).to.have.property('Referer', 'test.test?userId=27&context=fake-context');
+        expect(options.headers).to.have.property('referer', 'test.test?userId=27&context=fake-context');
+        done();
       });
     });
 
-    it('should add auth header', () => {
+    it('should add auth header', (done) => {
       const req: Partial<IncomingMessage> = {
         url: '/data/v1/valid',
         headers: baseHeaders,
@@ -173,17 +174,27 @@ describe('Transport', () => {
 
       client.build(req as IncomingMessage).then((options) => {
         expect(options.headers).to.have.property('X-Domo-Authentication', 'stub');
+        done();
       });
     });
 
-    it('should add json content-type header if none exist', () => {
+    it('should pass through other headers', (done) => {
       const req: Partial<IncomingMessage> = {
         url: '/data/v1/valid',
-        headers: baseHeaders,
+        headers: {
+          ...baseHeaders,
+          'X-Custom-Header': 'hello',
+        },
       };
 
       client.build(req as IncomingMessage).then((options) => {
-        expect(options.headers).to.have.property('Content-Type', 'application/json');
+        expect(options.headers).to.deep.equal({
+          accept: 'application/json',
+          'X-Custom-Header': 'hello',
+          referer: 'test.test?userId=27&context=fake-context',
+          'X-Domo-Authentication': 'stub',
+        });
+        done();
       });
     });
 
