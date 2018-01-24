@@ -1,7 +1,7 @@
 import * as Promise from 'core-js/es6/promise';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
-import { IncomingMessage } from 'http';
+import { IncomingMessage, IncomingHttpHeaders } from 'http';
 
 import { getMostRecentLogin } from '../utils';
 import { DomoException } from '../errors';
@@ -111,22 +111,9 @@ export default class Transport {
       .then((context, body) => {
         const jar = request.jar();
 
-        const referer = (req.headers.referer.indexOf('?') >= 0)
-          ? (`${req.headers.referer}&context=${context.id}`)
-          : (`${req.headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop&context=${context.id}`);
-
-        const headers = {
-          ...req.headers,
-          ...this.client.getAuthHeader(),
-          referer,
-        };
-
-        // delete original headers that don't mess with service
-        delete headers.host;
-
         const options = {
           jar,
-          headers,
+          headers: this.prepareHeaders(req.headers, context.id),
           url: api,
           method: req.method,
           body: null,
@@ -138,6 +125,22 @@ export default class Transport {
           return options;
         });
       });
+  }
+
+  private prepareHeaders(headers: IncomingHttpHeaders, context: string): IncomingHttpHeaders {
+    const referer = (headers.referer.indexOf('?') >= 0)
+      ? (`${headers.referer}&context=${context}`)
+      : (`${headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop&context=${context}`);
+
+    const newHeaders = {
+      ...headers,
+      ...this.client.getAuthHeader(),
+      referer,
+    };
+
+    delete newHeaders.host;
+
+    return newHeaders;
   }
 
   private parseBody(req: IncomingMessage): Promise<string|void> {
