@@ -138,7 +138,8 @@ export default class Transport {
       referer,
     };
 
-    delete newHeaders.host;
+    const rejectHeaders = ['host'];
+    rejectHeaders.forEach(key => delete newHeaders[key]);
 
     return newHeaders;
   }
