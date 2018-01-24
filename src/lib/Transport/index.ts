@@ -136,10 +136,8 @@ export default class Transport {
       ...headers,
       ...this.client.getAuthHeader(),
       referer,
+      host: undefined,
     };
-
-    const rejectHeaders = ['host'];
-    rejectHeaders.forEach(key => delete newHeaders[key]);
 
     return newHeaders;
   }
