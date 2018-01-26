@@ -193,6 +193,7 @@ describe('Transport', () => {
           'X-Custom-Header': 'hello',
           referer: 'test.test?userId=27&context=fake-context',
           'X-Domo-Authentication': 'stub',
+          host: undefined,
         });
         done();
       });
