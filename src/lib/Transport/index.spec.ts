@@ -3,8 +3,11 @@ import * as sinon from 'sinon';
 import * as nock from 'nock';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
+import * as MockReq from 'mock-req';
+import { IncomingMessage } from 'http';
 import { Request } from 'express';
 import { expect } from 'chai';
+
 import { default as Transport } from '.';
 import { Manifest, DomoClient } from '../models';
 
@@ -22,7 +25,7 @@ describe('Transport', () => {
       .stub(Transport.prototype, 'getLastLogin')
       .callsFake(() => {
         const domo = sinon.createStubInstance(Domo);
-        domo.getAuthHeader.returns({ 'X-DOMO-Developer-Token': 'stub' });
+        domo.getAuthHeader.returns({ 'X-Domo-Authentication': 'stub' });
         domo.instance = 'test.domo.com';
         domo.server = 'http://test.domo.com';
 
@@ -151,95 +154,140 @@ describe('Transport', () => {
       expect(client.build).to.be.an.instanceOf(Function);
     });
 
-    it('should modify referer, add auth header, and keep other headers', (done) => {
-      const req: Partial<Request> = {
+    it('should modify referer', (done) => {
+      const req: Partial<IncomingMessage> = {
+        url: '/data/v1/valid',
+        headers: baseHeaders,
+      };
+
+      client.build(req as IncomingMessage).then((options) => {
+        expect(options.headers).to.have.property('referer', 'test.test?userId=27&context=fake-context');
+        done();
+      });
+    });
+
+    it('should add auth header', (done) => {
+      const req: Partial<IncomingMessage> = {
+        url: '/data/v1/valid',
+        headers: baseHeaders,
+      };
+
+      client.build(req as IncomingMessage).then((options) => {
+        expect(options.headers).to.have.property('X-Domo-Authentication', 'stub');
+        done();
+      });
+    });
+
+    it('should pass through other headers', (done) => {
+      const req: Partial<IncomingMessage> = {
         url: '/data/v1/valid',
         headers: {
           ...baseHeaders,
-          'Custom-Header-1': 'test',
-          'Custom-Header-2': 'test2',
+          'X-Custom-Header': 'hello',
         },
       };
 
-      const expHeaders = {
-        ...req.headers,
-        referer: 'test.test?userId=27&context=fake-context',
-
-        // @TODO: update for OAuth
-        'X-DOMO-Developer-Token': 'stub',
-      };
-  
-      client.build(req as Request).then((options) => {
-        expect(options.headers).to.deep.equal(expHeaders);
+      client.build(req as IncomingMessage).then((options) => {
+        expect(options.headers).to.deep.equal({
+          accept: 'application/json',
+          'X-Custom-Header': 'hello',
+          referer: 'test.test?userId=27&context=fake-context',
+          'X-Domo-Authentication': 'stub',
+        });
         done();
       });
     });
 
     it('should build full URL', (done) => {
-      const req: Partial<Request> = {
+      const req: Partial<IncomingMessage> = {
         url: '/data/v1/test?fields=field1,field2&avg=field2',
         headers: baseHeaders,
       };
-  
-      client.build(req as Request).then((options) => {
-        expect(options.url).to.equal(`${domoDomain}/data/v1/test?fields=field1,field2&avg=field2`);  
+
+      client.build(req as IncomingMessage).then((options) => {
+        expect(options.url).to.equal(`${domoDomain}/data/v1/test?fields=field1,field2&avg=field2`);
         done();
       });
     });
 
     it('should use original request method', (done) => {
-      const req: Partial<Request> = {
+      const req: Partial<IncomingMessage> = {
         url: '/data/v1/valid',
         method: 'it does not matter',
         headers: baseHeaders,
       };
 
-      client.build(req as Request).then((options) => {
+      client.build(req as IncomingMessage).then((options) => {
         expect(options.method).to.equal(req.method);
         done();
       });
     });
 
-    it('should not munch req body', (done) => {
-      const req: Partial<Request> = {
+    it('should forward original JSON payload', (done) => {
+      const body = { name: 'json', message: 'should not get mutated' };
+      const req = new MockReq({
         url: '/data/v1/valid',
-        headers: baseHeaders,
-        body: {
-          name: 'json',
-          message: 'should not get mutated',
+        method: 'POST',
+        headers: {
+          ...baseHeaders,
+          'Content-Type': 'application/json',
         },
-      };
+      });
 
-      client.build(req as Request).then((options) => {
-        expect(options.body).to.deep.equal(req.body);
+      req.write(body);
+      req.end();
+
+      client.build(req).then((options) => {
+        expect(options.body).to.deep.equal(JSON.stringify(body));
+        done();
+      });
+    });
+
+    it('should forward original Text payload', (done) => {
+      const body = 'example,csv,string';
+      const req = new MockReq({
+        url: '/data/v1/valid',
+        method: 'POST',
+        headers: {
+          ...baseHeaders,
+          'Content-Type': 'text/csv',
+        },
+      });
+
+      req.write(body);
+      req.end();
+
+      client.build(req).then((options) => {
+        expect(options.body).to.deep.equal(body);
         done();
       });
     });
   });
 
-  describe('isValidRequest()', () => {
+  describe('isDomoRequest()', () => {
     it('should instantiate', () => {
-      expect(client.isValidRequest).to.exist;
-      expect(client.isValidRequest).to.be.an.instanceOf(Function);
+      expect(client.isDomoRequest).to.exist;
+      expect(client.isDomoRequest).to.be.an.instanceOf(Function);
     });
 
     it('should pass /domo requests', () => {
-      expect(client.isValidRequest('/domo/users/v1')).to.be.true;
-      expect(client.isValidRequest('/domo/avatars/v1')).to.be.true;
+      expect(client.isDomoRequest('/domo/users/v1')).to.be.true;
+      expect(client.isDomoRequest('/domo/avatars/v1')).to.be.true;
+      expect(client.isDomoRequest('/domo/other/v1')).to.be.true;
     });
 
     it('should pass /data requests', () => {
-      expect(client.isValidRequest('/data/v1/alias')).to.be.true;
+      expect(client.isDomoRequest('/data/v1/alias')).to.be.true;
     });
 
     it('should pass /dql requests', () => {
-      expect(client.isValidRequest('/dql/v1/alias')).to.be.true;
+      expect(client.isDomoRequest('/dql/v1/alias')).to.be.true;
     });
 
     it('should return false for invalid urls', () => {
-      expect(client.isValidRequest('/bad/url')).to.be.false;
-      expect(client.isValidRequest('/data/alias')).to.be.false;
-      expect(client.isValidRequest('/dql')).to.be.false;
+      expect(client.isDomoRequest('/bad/url')).to.be.false;
+      expect(client.isDomoRequest('/data/alias')).to.be.false;
+      expect(client.isDomoRequest('/dql')).to.be.false;
     });
   });
 });

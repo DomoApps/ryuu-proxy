@@ -1,7 +1,7 @@
 import * as Promise from 'core-js/es6/promise';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
-import { Request } from 'express';
+import { IncomingMessage, IncomingHttpHeaders } from 'http';
 
 import { getMostRecentLogin } from '../utils';
 import { DomoException } from '../errors';
@@ -23,15 +23,15 @@ export default class Transport {
   getEnv(instance: string): string {
     const regexp = /([-_\w]+)\.(.*)/;
     const int = 2;
-    
+
     return instance.match(regexp)[int];
   }
-  
-  isValidRequest(url: string): boolean {
-    const domoPattern = /^\/domo\/(users|avatars)\/v\d/;
+
+  isDomoRequest(url: string): boolean {
+    const domoPattern = /^\/domo\/.+\/v\d/;
     const dataPattern = /^\/data\/v\d\/.+/;
     const dqlPattern = /^\/dql\/v\d\/.+/;
-  
+
     return (
       domoPattern.test(url)
       || dataPattern.test(url)
@@ -80,48 +80,6 @@ export default class Transport {
     });
   }
 
-  
-  build(req: Request): Promise<request.CoreOptions> {
-    if (!this.isValidRequest(req.url)) {
-      const err = new Error('url provided is not a valid domo app endpoint');
-      
-      return Promise.reject(err);
-    }
-    
-    let api: string;
-    
-    return this.domainPromise
-      .then((domain) => {
-        api = `${domain}${req.url}`;
-        
-        return this.createContext();
-      })
-      .then((context) => {
-        const jar = request.jar();
-        
-        const referer = (req.headers.referer.indexOf('?') >= 0)
-          ? (`${req.headers.referer}&context=${context.id}`)
-          : (`${req.headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop&context=${context.id}`);
-        
-        const headers = {
-          ...req.headers,
-          ...this.client.getAuthHeader(),
-          referer,
-        };
-        
-        return {
-          jar,
-          headers,
-          url: api,
-          method: req.method,
-          body: req.body,
-        };
-      })
-      .catch((err) => {
-        throw new DomoException(err, req.url);
-      });
-  }
-  
   createContext(): Promise {
     const options = {
       method: 'POST',
@@ -129,17 +87,77 @@ export default class Transport {
       json: { designId: this.manifest.id, mapping: this.manifest.mapping },
       headers: this.client.getAuthHeader(),
     };
-    
+
     return new Promise((resolve, reject) => {
       request(options, (error, response, body) => {
-        const ok = 200;
-        
         if (error) reject(error);
-        
-        if (response.statusCode !== ok) reject(response);
-        
+
+        if (response.statusCode !== 200) reject(response);
+
         resolve(body[0]);
       });
+    });
+  }
+
+  build(req: IncomingMessage): Promise<request.CoreOptions> {
+    let api: string;
+
+    return this.domainPromise
+      .then((domain) => {
+        api = `${domain}${req.url}`;
+
+        return this.createContext();
+      })
+      .then((context, body) => {
+        const jar = request.jar();
+
+        const options = {
+          jar,
+          headers: this.prepareHeaders(req.headers, context.id),
+          url: api,
+          method: req.method,
+          body: null,
+        };
+
+        return this.parseBody(req).then((body) => {
+          options.body = body;
+
+          return options;
+        });
+      });
+  }
+
+  private prepareHeaders(headers: IncomingHttpHeaders, context: string): IncomingHttpHeaders {
+    const referer = (headers.referer.indexOf('?') >= 0)
+      ? (`${headers.referer}&context=${context}`)
+      : (`${headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop&context=${context}`);
+
+    const newHeaders = {
+      ...headers,
+      ...this.client.getAuthHeader(),
+      referer,
+      host: undefined,
+    };
+
+    return newHeaders;
+  }
+
+  private parseBody(req: IncomingMessage): Promise<string|void> {
+    return new Promise((resolve) => {
+      const body = [];
+
+      try {
+        req.on('data', chunk => body.push(chunk));
+
+        req.on('end', () => {
+          const raw = Buffer.concat(body).toString();
+          resolve(raw);
+        });
+
+        req.on('error', () => resolve(null));
+      } catch (e) {
+        resolve();
+      }
     });
   }
 }
