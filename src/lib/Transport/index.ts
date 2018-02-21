@@ -1,6 +1,7 @@
 import * as Promise from 'core-js/es6/promise';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
+import { Request } from 'express';
 import { IncomingMessage, IncomingHttpHeaders } from 'http';
 
 import { getMostRecentLogin } from '../utils';
@@ -143,6 +144,13 @@ export default class Transport {
   }
 
   private parseBody(req: IncomingMessage): Promise<string|void> {
+    // if body-parser was used before this middleware the "body" attribute will be set
+    const exprReq = req as Request;
+    if (typeof exprReq.body !== 'undefined') {
+      if (typeof exprReq.body === 'string') return Promise.resolve(exprReq.body);
+      return Promise.resolve(JSON.stringify(exprReq.body));
+    }
+
     return new Promise((resolve) => {
       const body = [];
 
