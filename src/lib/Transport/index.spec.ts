@@ -224,43 +224,68 @@ describe('Transport', () => {
       });
     });
 
-    it('should forward original JSON payload', (done) => {
-      const body = { name: 'json', message: 'should not get mutated' };
-      const req = new MockReq({
-        url: '/data/v1/valid',
-        method: 'POST',
-        headers: {
-          ...baseHeaders,
-          'Content-Type': 'application/json',
-        },
+    describe('parseBody', () => {
+      const jsonBody = JSON.stringify({
+        name: 'json',
+        message: 'should not get mutated',
+      });
+      const textBody = 'example,csv,string';
+      let req;
+
+      beforeEach(() => {
+        req = new MockReq({
+          url: '/data/v1/valid',
+          method: 'POST',
+          headers: baseHeaders,
+        });
       });
 
-      req.write(body);
-      req.end();
+      describe('with JSON body', () => {
+        beforeEach(() => {
+          req.headers['Content-Type'] = 'application/json';
+        });
 
-      client.build(req).then((options) => {
-        expect(options.body).to.deep.equal(JSON.stringify(body));
-        done();
+        it('should forward original body attribute', (done) => {
+          req.body = jsonBody;
+          req.end();
+          client.build(req).then((options) => {
+            expect(options.body).to.deep.equal(jsonBody);
+            done();
+          });
+        });
+
+        it('should forward original payload', (done) => {
+          req.write(JSON.parse(jsonBody));
+          req.end();
+          client.build(req).then((options) => {
+            expect(options.body).to.deep.equal(jsonBody);
+            done();
+          });
+        });
       });
-    });
 
-    it('should forward original Text payload', (done) => {
-      const body = 'example,csv,string';
-      const req = new MockReq({
-        url: '/data/v1/valid',
-        method: 'POST',
-        headers: {
-          ...baseHeaders,
-          'Content-Type': 'text/csv',
-        },
-      });
+      describe('with text body', () => {
+        beforeEach(() => {
+          req.headers['Content-Type'] = 'text/csv';
+        });
 
-      req.write(body);
-      req.end();
+        it('should forward original body attribute', (done) => {
+          req.body = textBody;
+          req.end();
+          client.build(req).then((options) => {
+            expect(options.body).to.deep.equal(textBody);
+            done();
+          });
+        });
 
-      client.build(req).then((options) => {
-        expect(options.body).to.deep.equal(body);
-        done();
+        it('should forward original payload', (done) => {
+          req.write(textBody);
+          req.end();
+          client.build(req).then((options) => {
+            expect(options.body).to.deep.equal(textBody);
+            done();
+          });
+        });
       });
     });
   });
