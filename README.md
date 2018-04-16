@@ -27,7 +27,7 @@ const { Proxy } = require('@domoinc/ryuu-proxy');
 const app = express();
 
 const manifest = require('./path/to/app/manifest.json');
-const proxy = new Proxy(manifest);
+const proxy = new Proxy({ manifest: manifest });
 
 app.use(proxy.express());
 ```

@@ -9,6 +9,11 @@ export interface DomoClient {
   createUUID(): string;
 }
 
+export interface ProxyOptions {
+  manifest: Manifest;
+  appContextId?: string;
+}
+
 export interface FieldMap {
   alias: string;
   columnName: string;
