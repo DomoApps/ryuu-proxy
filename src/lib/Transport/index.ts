@@ -6,15 +6,20 @@ import { IncomingMessage, IncomingHttpHeaders } from 'http';
 
 import { getMostRecentLogin } from '../utils';
 import { DomoException } from '../errors';
-import { Manifest, DomoClient } from '../models';
+import { Manifest, DomoClient, ProxyOptions } from '../models';
 
 export default class Transport {
   private manifest: Manifest;
   private client: DomoClient;
   private domainPromise: Promise;
+  private appContextId: string;
 
-  constructor(manifest: Manifest) {
+  constructor({
+    manifest,
+    appContextId,
+  }: ProxyOptions) {
     this.manifest = manifest;
+    this.appContextId = (typeof appContextId === 'string') ? appContextId : Domo.createUUID();
     this.client = this.getLastLogin();
     this.domainPromise = this.getDomoDomain();
   }
@@ -59,7 +64,7 @@ export default class Transport {
   }
 
   getDomoDomain(): Promise<string> {
-    const uuid = Domo.createUUID();
+    const uuid = this.appContextId;
     const j = request.jar();
     const auth = `SID="${this.client.sid}"`;
     const cookie = request.cookie(auth);

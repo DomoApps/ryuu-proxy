@@ -4,13 +4,13 @@ import { IncomingMessage } from 'http';
 
 import Transport from './lib/Transport';
 import { DomoException } from './lib/errors';
-import { Manifest } from './lib/models';
+import { ProxyOptions, Manifest } from './lib/models';
 
 export class Proxy {
   private transport: Transport;
 
-  constructor(manifest: Manifest) {
-    this.transport = new Transport(manifest);
+  constructor(config: ProxyOptions) {
+    this.transport = new Transport(config);
   }
 
   express = () => (req: Request, res: Response, next: NextFunction): Promise => {

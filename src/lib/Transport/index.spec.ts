@@ -17,11 +17,11 @@ describe('Transport', () => {
 
   let client: Transport;
   let manifest: Manifest;
-  let clientStub;
-  let promiseStub;
+  let getLastLoginStub;
+  let getDomoDomainStub;
 
   beforeEach((done) => {
-    clientStub = sinon
+    getLastLoginStub = sinon
       .stub(Transport.prototype, 'getLastLogin')
       .callsFake(() => {
         const domo = sinon.createStubInstance(Domo);
@@ -32,7 +32,7 @@ describe('Transport', () => {
         return domo;
       });
 
-    promiseStub = sinon
+    getDomoDomainStub = sinon
       .stub(Transport.prototype, 'getDomoDomain')
       .callsFake(() => Promise.resolve(domoDomain));
 
@@ -43,13 +43,13 @@ describe('Transport', () => {
       sizing: { width: 1, height: 1 },
     };
 
-    client = new Transport(manifest);
+    client = new Transport({ manifest });
     done();
   });
 
   afterEach(() => {
-    clientStub.restore();
-    promiseStub.restore();
+    getLastLoginStub.restore();
+    getDomoDomainStub.restore();
   });
 
   it('should instantiate', () => {
@@ -94,8 +94,8 @@ describe('Transport', () => {
         .get('/api/content/v1/mobile/environment')
         .reply(OK, JSON.stringify({ domoappsDomain: 'domoapps.dev2.domo.com' }));
 
-      // clear existing stubs
-      promiseStub.restore();
+      // clear getDomoDomain stub
+      getDomoDomainStub.restore();
     });
 
     it('should instantiate', () => {
@@ -110,6 +110,17 @@ describe('Transport', () => {
         const pattern = /^https:\/\/[a-z0-9\-]{36}.domoapps.dev2.domo.com/g;
         expect(res).to.exist;
         expect(pattern.test(res)).to.be.true;
+        done();
+      });
+    });
+
+    it('should accept an overridden appContextId', (done) => {
+      const appContextId = 'textContextId';
+      client = new Transport({ manifest, appContextId });
+      client.getDomoDomain().then((res: string) => {
+        const pattern = /^https:\/\/(.*).domoapps.dev2.domo.com/g;
+        const matches = pattern.exec(res);
+        expect(matches[1]).to.equal(appContextId);
         done();
       });
     });
