@@ -11,58 +11,91 @@ import { expect } from 'chai';
 import { default as Transport } from '.';
 import { Manifest, DomoClient } from '../models';
 
+const manifest: Manifest = {
+  id: 'test-id',
+  name: 'test-app',
+  version: '1.0.0',
+  sizing: { width: 1, height: 1 },
+};
+
 describe('Transport', () => {
   const lastLogin = 'customer.domo.com';
   const domoDomain = 'https://88e99055-1520-440c-99a0-7b2a27469391.domoapps.test.domo.com';
 
-  let client: Transport;
-  let manifest: Manifest;
-  let getLastLoginStub;
   let getDomoDomainStub;
 
   beforeEach((done) => {
-    getLastLoginStub = sinon
-      .stub(Transport.prototype, 'getLastLogin')
-      .callsFake(() => {
-        const domo = sinon.createStubInstance(Domo);
-        domo.getAuthHeader.returns({ 'X-Domo-Authentication': 'stub' });
-        domo.instance = 'test.domo.com';
-        domo.server = 'http://test.domo.com';
-
-        return domo;
-      });
-
     getDomoDomainStub = sinon
       .stub(Transport.prototype, 'getDomoDomain')
-      .callsFake(() => Promise.resolve(domoDomain));
+      .returns(Promise.resolve(domoDomain));
 
-    manifest = {
-      id: 'test-id',
-      name: 'test-app',
-      version: '1.0.0',
-      sizing: { width: 1, height: 1 },
-    };
 
-    client = new Transport({ manifest });
     done();
   });
 
   afterEach(() => {
-    getLastLoginStub.restore();
     getDomoDomainStub.restore();
   });
 
-  it('should instantiate', () => {
-    expect(Transport).to.exist;
-    expect(Transport).to.be.an.instanceof(Function);
+  describe('when creating a new instance', () => {
+    let getLastLoginStub;
+    let client: Transport;
 
-    expect(client).to.exist;
-    expect(client).to.be.an.instanceof(Transport);
-    expect(client.getManifest).to.exist;
-    expect(client.getDomoClient).to.exist;
+    beforeEach((done) => {
+      getLastLoginStub = sinon
+        .stub(Transport.prototype, 'getLastLogin')
+        .callsFake(() => {
+          const domo = sinon.createStubInstance(Domo);
+          domo.instance = 'test.domo.com';
+          domo.server = 'http://test.domo.com';
+
+          return domo;
+        });
+
+      client = new Transport({ manifest });
+
+      done();
+    });
+
+    afterEach(() => {
+      getLastLoginStub.restore();
+    });
+
+    it('should instantiate with no errors', () => {
+      expect(Transport).to.exist;
+      expect(Transport).to.be.an.instanceof(Function);
+
+      expect(client).to.exist;
+      expect(client).to.be.an.instanceof(Transport);
+      expect(client.getManifest).to.exist;
+      expect(client.getDomoClient).to.exist;
+    });
   });
 
   describe('getDomoClient()', () => {
+    let getLastLoginStub;
+    let client: Transport;
+
+    beforeEach((done) => {
+      getLastLoginStub = sinon
+        .stub(Transport.prototype, 'getLastLogin')
+        .callsFake(() => {
+          const domo = sinon.createStubInstance(Domo);
+          domo.instance = 'test.domo.com';
+          domo.server = 'http://test.domo.com';
+
+          return domo;
+        });
+
+      client = new Transport({ manifest });
+
+      done();
+    });
+
+    afterEach(() => {
+      getLastLoginStub.restore();
+    });
+
     it('should instantiate', () => {
       expect(client.getDomoClient).to.exist;
       expect(client.getDomoClient).to.be.an.instanceOf(Function);
@@ -76,6 +109,29 @@ describe('Transport', () => {
   });
 
   describe('getEnv()', () => {
+    let getLastLoginStub;
+    let client: Transport;
+
+    beforeEach((done) => {
+      getLastLoginStub = sinon
+        .stub(Transport.prototype, 'getLastLogin')
+        .callsFake(() => {
+          const domo = sinon.createStubInstance(Domo);
+          domo.instance = 'test.domo.com';
+          domo.server = 'http://test.domo.com';
+
+          return domo;
+        });
+
+      client = new Transport({ manifest });
+
+      done();
+    });
+
+    afterEach(() => {
+      getLastLoginStub.restore();
+    });
+
     it('should instantiate', () => {
       expect(client.getEnv).to.exist;
       expect(client.getEnv).to.be.an.instanceOf(Function);
@@ -88,14 +144,31 @@ describe('Transport', () => {
   });
 
   describe('getDomoDomain()', () => {
-    beforeEach(() => {
-      const OK = 200;
-      nock('http://test.domo.com')
-        .get('/api/content/v1/mobile/environment')
-        .reply(OK, JSON.stringify({ domoappsDomain: 'domoapps.dev2.domo.com' }));
+    let getLastLoginStub;
+    let client: Transport;
 
-      // clear getDomoDomain stub
+    beforeEach((done) => {
       getDomoDomainStub.restore();
+
+      getLastLoginStub = sinon
+        .stub(Transport.prototype, 'getLastLogin')
+        .callsFake(() => {
+          const domo = sinon.createStubInstance(Domo);
+          domo.instance = 'test.domo.com';
+          domo.server = 'http://test.domo.com';
+          domo.processRequest
+            .returns(Promise.resolve({ domoappsDomain: 'domoapps.dev2.domo.com' }));
+
+          return domo;
+        });
+
+      client = new Transport({ manifest });
+
+      done();
+    });
+
+    afterEach(() => {
+      getLastLoginStub.restore();
     });
 
     it('should instantiate', () => {
@@ -127,15 +200,36 @@ describe('Transport', () => {
   });
 
   describe('createContext()', () => {
-    beforeEach(() => {
-      const OK = 200;
-      nock('http://test.domo.com')
-        .post('/domoapps/apps/v2/contexts')
-        .reply(OK, [{ id: 'test-context' }]);
+    let getLastLoginStub;
+    let client: Transport;
+
+    beforeEach((done) => {
+      getLastLoginStub = sinon
+        .stub(Transport.prototype, 'getLastLogin')
+        .callsFake(() => {
+          const domo = sinon.createStubInstance(Domo);
+          domo.instance = 'test.domo.com';
+          domo.server = 'http://test.domo.com';
+          domo.processRequest.returns(Promise.resolve({
+            0: { id: 'test-context' },
+            statusCode: 200,
+          }));
+
+          return domo;
+        });
+
+      client = new Transport({ manifest });
+
+      done();
+    });
+
+    afterEach(() => {
+      getLastLoginStub.restore();
     });
 
     it('should POST to /domoapps contexts', (done) => {
       client.createContext().then((res) => {
+        console.log('res', res);
         expect(res).to.exist;
         expect(res.id).to.equal('test-context');
         done();
@@ -151,12 +245,30 @@ describe('Transport', () => {
 
     let contextStub;
 
-    beforeEach(() => {
+    let getLastLoginStub;
+    let client: Transport;
+
+    beforeEach((done) => {
+      getLastLoginStub = sinon
+        .stub(Transport.prototype, 'getLastLogin')
+        .callsFake(() => {
+          const domo = sinon.createStubInstance(Domo);
+          domo.instance = 'test.domo.com';
+          domo.server = 'http://test.domo.com';
+
+          return domo;
+        });
+
+      client = new Transport({ manifest });
+
       contextStub = sinon.stub(client, 'createContext')
         .returns(Promise.resolve({ id: 'fake-context' }));
+
+      done();
     });
 
     afterEach(() => {
+      getLastLoginStub.restore();
       contextStub.restore();
     });
 
@@ -177,18 +289,6 @@ describe('Transport', () => {
       });
     });
 
-    it('should add auth header', (done) => {
-      const req: Partial<IncomingMessage> = {
-        url: '/data/v1/valid',
-        headers: baseHeaders,
-      };
-
-      client.build(req as IncomingMessage).then((options) => {
-        expect(options.headers).to.have.property('X-Domo-Authentication', 'stub');
-        done();
-      });
-    });
-
     it('should pass through other headers', (done) => {
       const req: Partial<IncomingMessage> = {
         url: '/data/v1/valid',
@@ -203,7 +303,6 @@ describe('Transport', () => {
           accept: 'application/json',
           'X-Custom-Header': 'hello',
           referer: 'test.test?userId=27&context=fake-context',
-          'X-Domo-Authentication': 'stub',
           host: undefined,
         });
         done();
@@ -302,6 +401,29 @@ describe('Transport', () => {
   });
 
   describe('isDomoRequest()', () => {
+    let getLastLoginStub;
+    let client: Transport;
+
+    beforeEach((done) => {
+      getLastLoginStub = sinon
+        .stub(Transport.prototype, 'getLastLogin')
+        .callsFake(() => {
+          const domo = sinon.createStubInstance(Domo);
+          domo.instance = 'test.domo.com';
+          domo.server = 'http://test.domo.com';
+
+          return domo;
+        });
+
+      client = new Transport({ manifest });
+
+      done();
+    });
+
+    afterEach(() => {
+      getLastLoginStub.restore();
+    });
+
     it('should instantiate', () => {
       expect(client.isDomoRequest).to.exist;
       expect(client.isDomoRequest).to.be.an.instanceOf(Function);

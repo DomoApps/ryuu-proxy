@@ -2,11 +2,11 @@ import * as Promise from 'core-js/es6/promise';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
 import { Request } from 'express';
-import { IncomingMessage, IncomingHttpHeaders } from 'http';
+import { IncomingMessage, IncomingHttpHeaders, ClientResponse } from 'http';
 
-import { getMostRecentLogin } from '../utils';
 import { DomoException } from '../errors';
 import { Manifest, DomoClient, ProxyOptions } from '../models';
+import { CLIENT_ID } from '../constants';
 
 export default class Transport {
   private manifest: Manifest;
@@ -24,7 +24,7 @@ export default class Transport {
     this.domainPromise = this.getDomoDomain();
   }
 
-  request = options => request(options);
+  request = options => this.client.processRawRequest(options);
 
   getEnv(instance: string): string {
     const regexp = /([-_\w]+)\.(.*)/;
@@ -58,32 +58,28 @@ export default class Transport {
   }
 
   getLastLogin(): DomoClient {
-    const recentLogin = getMostRecentLogin();
+    const recentLogin = Domo.getMostRecentLogin();
 
-    return new Domo(recentLogin.instance, recentLogin.sid, recentLogin.devtoken);
+    this.verifyLogin(recentLogin);
+
+    return new Domo(recentLogin.instance, recentLogin.refreshToken, CLIENT_ID);
   }
 
   getDomoDomain(): Promise<string> {
     const uuid = this.appContextId;
-    const j = request.jar();
-    const auth = `SID="${this.client.sid}"`;
-    const cookie = request.cookie(auth);
-    j.setCookie(cookie, this.client.server);
-
     const options = {
       url: `${this.client.server}/api/content/v1/mobile/environment`,
-      headers: this.client.getAuthHeader(),
     };
 
-    return new Promise((resolve, reject) => {
-      request(options, (error, response, body) => {
-        const env = this.getEnv(this.client.instance);
+    return this.client.processRequest(options)
+      .then(
+        res => `https://${uuid}.${res.domoappsDomain}`,
+        () => {
+          const env = this.getEnv(this.client.instance);
 
-        if (error) reject(`https://${uuid}.domoapps.${env}`);
-
-        resolve(`https://${uuid}.${JSON.parse(body).domoappsDomain}`);
-      });
-    });
+          return `https://${uuid}.domoapps.${env}`;
+        },
+      );
   }
 
   createContext(): Promise {
@@ -91,21 +87,18 @@ export default class Transport {
       method: 'POST',
       url: `${this.client.server}/domoapps/apps/v2/contexts`,
       json: { designId: this.manifest.id, mapping: this.manifest.mapping },
-      headers: this.client.getAuthHeader(),
     };
 
-    return new Promise((resolve, reject) => {
-      request(options, (error, response, body) => {
-        if (error) reject(error);
+    return this.client.processRequest(options)
+      .then((res) => {
+        console.log('res', res);
+        if (res.statusCode !== 200) throw new Error(res);
 
-        if (response.statusCode !== 200) reject(response);
-
-        resolve(body[0]);
+        return res[0];
       });
-    });
   }
 
-  build(req: IncomingMessage): Promise<request.CoreOptions> {
+  build(req: IncomingMessage): Promise<request.Options> {
     let api: string;
 
     return this.domainPromise
@@ -140,7 +133,6 @@ export default class Transport {
 
     const newHeaders = {
       ...headers,
-      ...this.client.getAuthHeader(),
       referer,
       host: undefined,
     };
@@ -172,5 +164,11 @@ export default class Transport {
         resolve();
       }
     });
+  }
+
+  private verifyLogin(login) {
+    if (!login.refreshToken) {
+      throw new Error('Not authenticated. Please login using "domo login"');
+    }
   }
 }
