@@ -19,7 +19,7 @@ export class Proxy {
         this.transport
           .build(req)
           .then(options => this.transport.request(options))
-          .then(res)
+          .then(rawRequest => rawRequest.pipe(res))
           .catch((err) => {
             const status = err.statusCode || 500;
             const msg = (err.body !== undefined) ? err.body : err;

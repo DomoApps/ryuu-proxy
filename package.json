@@ -53,6 +53,7 @@
     "core-js": "^2.5.3",
     "fs-extra": "^4.0.2",
     "glob": "^7.1.2",
+    "keytar": "^4.2.1",
     "request": "^2.81.0",
     "ryuu-client": "^3.0.0"
   }

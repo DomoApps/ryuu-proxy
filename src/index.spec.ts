@@ -21,7 +21,7 @@ describe('Proxy', () => {
 
   beforeEach(() => {
     clientStub = sinon.stub(Transport.prototype, 'getLastLogin')
-      .callsFake(() => new Domo('test.dev.domo.com', 'test-sid', 'test-token'));
+      .returns(Promise.resolve(new Domo('test.dev.domo.com', 'test-sid', 'test-token')));
 
     client = new Proxy({ manifest });
   });

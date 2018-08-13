@@ -49,7 +49,7 @@ describe('Transport', () => {
           domo.instance = 'test.domo.com';
           domo.server = 'http://test.domo.com';
 
-          return domo;
+          return Promise.resolve(domo);
         });
 
       client = new Transport({ manifest });
@@ -68,43 +68,6 @@ describe('Transport', () => {
       expect(client).to.exist;
       expect(client).to.be.an.instanceof(Transport);
       expect(client.getManifest).to.exist;
-      expect(client.getDomoClient).to.exist;
-    });
-  });
-
-  describe('getDomoClient()', () => {
-    let getLastLoginStub;
-    let client: Transport;
-
-    beforeEach((done) => {
-      getLastLoginStub = sinon
-        .stub(Transport.prototype, 'getLastLogin')
-        .callsFake(() => {
-          const domo = sinon.createStubInstance(Domo);
-          domo.instance = 'test.domo.com';
-          domo.server = 'http://test.domo.com';
-
-          return domo;
-        });
-
-      client = new Transport({ manifest });
-
-      done();
-    });
-
-    afterEach(() => {
-      getLastLoginStub.restore();
-    });
-
-    it('should instantiate', () => {
-      expect(client.getDomoClient).to.exist;
-      expect(client.getDomoClient).to.be.an.instanceOf(Function);
-    });
-
-    it('should return Domo Client', () => {
-      const domoClient: DomoClient = client.getDomoClient();
-      expect(domoClient).to.exist;
-      expect(domoClient).to.be.an.instanceOf(Domo);
     });
   });
 
@@ -120,7 +83,7 @@ describe('Transport', () => {
           domo.instance = 'test.domo.com';
           domo.server = 'http://test.domo.com';
 
-          return domo;
+          return Promise.resolve(domo);
         });
 
       client = new Transport({ manifest });
@@ -157,9 +120,9 @@ describe('Transport', () => {
           domo.instance = 'test.domo.com';
           domo.server = 'http://test.domo.com';
           domo.processRequest
-            .returns(Promise.resolve({ domoappsDomain: 'domoapps.dev2.domo.com' }));
+            .returns(Promise.resolve(JSON.stringify({ domoappsDomain: 'domoapps.dev2.domo.com' })));
 
-          return domo;
+          return Promise.resolve(domo);
         });
 
       client = new Transport({ manifest });
@@ -215,7 +178,7 @@ describe('Transport', () => {
             statusCode: 200,
           }));
 
-          return domo;
+          return Promise.resolve(domo);
         });
 
       client = new Transport({ manifest });
@@ -256,7 +219,7 @@ describe('Transport', () => {
           domo.instance = 'test.domo.com';
           domo.server = 'http://test.domo.com';
 
-          return domo;
+          return Promise.resolve(domo);
         });
 
       client = new Transport({ manifest });
@@ -412,7 +375,7 @@ describe('Transport', () => {
           domo.instance = 'test.domo.com';
           domo.server = 'http://test.domo.com';
 
-          return domo;
+          return Promise.resolve(domo);
         });
 
       client = new Transport({ manifest });
