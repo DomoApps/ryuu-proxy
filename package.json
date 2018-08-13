@@ -56,5 +56,8 @@
     "keytar": "^4.2.1",
     "request": "^2.81.0",
     "ryuu-client": "^3.0.0"
+  },
+  "peerDependencies": {
+    "ryuu": "^3.0.1"
   }
 }
