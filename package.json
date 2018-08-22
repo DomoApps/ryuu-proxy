@@ -1,6 +1,6 @@
 {
   "name": "@domoinc/ryuu-proxy",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "a middleware that provides a proxy for local domo app development",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -33,7 +33,7 @@
     "@types/mocha": "^2.2.39",
     "@types/nock": "^8.2.1",
     "@types/node": "^8.0.53",
-    "@types/request": "^2.0.8",
+    "@types/request": "^2.47.1",
     "@types/sinon": "^4.0.0",
     "chai": "^4.1.2",
     "cross-env": "^5.0.1",
@@ -53,7 +53,11 @@
     "core-js": "^2.5.3",
     "fs-extra": "^4.0.2",
     "glob": "^7.1.2",
+    "keytar": "^4.2.1",
     "request": "^2.81.0",
-    "ryuu-client": "^2.11.0"
+    "ryuu-client": "^3.0.0"
+  },
+  "peerDependencies": {
+    "ryuu": "^3.0.1"
   }
 }

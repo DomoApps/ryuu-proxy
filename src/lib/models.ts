@@ -1,5 +1,4 @@
-import * as http from 'http';
-
+import { Options, Request } from 'request';
 export interface DomoClient {
   instance: string;
   server: string;
@@ -7,6 +6,8 @@ export interface DomoClient {
   sid: string;
   getAuthHeader(): any;
   createUUID(): string;
+  processRequest(options: Options): Promise<any>;
+  processRequestRaw(options: Options): Promise<Request>;
 }
 
 export interface ProxyOptions {

@@ -2,15 +2,16 @@ import * as Promise from 'core-js/es6/promise';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
 import { Request } from 'express';
-import { IncomingMessage, IncomingHttpHeaders } from 'http';
+import { IncomingMessage, IncomingHttpHeaders, ClientResponse } from 'http';
 
 import { getMostRecentLogin } from '../utils';
 import { DomoException } from '../errors';
 import { Manifest, DomoClient, ProxyOptions } from '../models';
+import { CLIENT_ID } from '../constants';
 
 export default class Transport {
   private manifest: Manifest;
-  private client: DomoClient;
+  private clientPromise: Promise<DomoClient>;
   private domainPromise: Promise;
   private appContextId: string;
 
@@ -20,11 +21,12 @@ export default class Transport {
   }: ProxyOptions) {
     this.manifest = manifest;
     this.appContextId = (typeof appContextId === 'string') ? appContextId : Domo.createUUID();
-    this.client = this.getLastLogin();
+    this.clientPromise = this.getLastLogin();
     this.domainPromise = this.getDomoDomain();
   }
 
-  request = options => request(options);
+  request = (options: request.Options) => this.clientPromise
+    .then(client => client.processRequestRaw(options))
 
   getEnv(instance: string): string {
     const regexp = /([-_\w]+)\.(.*)/;
@@ -49,63 +51,54 @@ export default class Transport {
     return this.manifest;
   }
 
-  getDomoClient(): DomoClient {
-    return this.client;
-  }
-
   getDomainPromise(): Promise {
     return this.domainPromise;
   }
 
-  getLastLogin(): DomoClient {
-    const recentLogin = getMostRecentLogin();
-
-    return new Domo(recentLogin.instance, recentLogin.sid, recentLogin.devtoken);
+  getLastLogin(): Promise<DomoClient> {
+    return getMostRecentLogin()
+      .then(this.verifyLogin)
+      .then(recentLogin => new Domo(recentLogin.instance, recentLogin.refreshToken, CLIENT_ID));
   }
 
   getDomoDomain(): Promise<string> {
     const uuid = this.appContextId;
-    const j = request.jar();
-    const auth = `SID="${this.client.sid}"`;
-    const cookie = request.cookie(auth);
-    j.setCookie(cookie, this.client.server);
+    let domoClient;
 
-    const options = {
-      url: `${this.client.server}/api/content/v1/mobile/environment`,
-      headers: this.client.getAuthHeader(),
-    };
+    return this.clientPromise
+      .then((client) => {
+        domoClient = client;
+        const options = {
+          url: `${client.server}/api/content/v1/mobile/environment`,
+        };
 
-    return new Promise((resolve, reject) => {
-      request(options, (error, response, body) => {
-        const env = this.getEnv(this.client.instance);
+        return client.processRequest(options);
+      })
+      .then(
+        res => `https://${uuid}.${JSON.parse(res).domoappsDomain}`,
+        () => {
+          const env = this.getEnv(domoClient.instance);
 
-        if (error) reject(`https://${uuid}.domoapps.${env}`);
-
-        resolve(`https://${uuid}.${JSON.parse(body).domoappsDomain}`);
-      });
-    });
+          return `https://${uuid}.domoapps.${env}`;
+        },
+      );
   }
 
   createContext(): Promise {
-    const options = {
-      method: 'POST',
-      url: `${this.client.server}/domoapps/apps/v2/contexts`,
-      json: { designId: this.manifest.id, mapping: this.manifest.mapping },
-      headers: this.client.getAuthHeader(),
-    };
+    return this.clientPromise
+      .then((client) => {
+        const options = {
+          method: 'POST',
+          url: `${client.server}/domoapps/apps/v2/contexts`,
+          json: { designId: this.manifest.id, mapping: this.manifest.mapping },
+        };
 
-    return new Promise((resolve, reject) => {
-      request(options, (error, response, body) => {
-        if (error) reject(error);
-
-        if (response.statusCode !== 200) reject(response);
-
-        resolve(body[0]);
-      });
-    });
+        return client.processRequest(options);
+      })
+      .then(res => res[0]);
   }
 
-  build(req: IncomingMessage): Promise<request.CoreOptions> {
+  build(req: IncomingMessage): Promise<request.Options> {
     let api: string;
 
     return this.domainPromise
@@ -114,7 +107,7 @@ export default class Transport {
 
         return this.createContext();
       })
-      .then((context, body) => {
+      .then((context) => {
         const jar = request.jar();
 
         const options = {
@@ -134,13 +127,14 @@ export default class Transport {
   }
 
   private prepareHeaders(headers: IncomingHttpHeaders, context: string): IncomingHttpHeaders {
+    if (!headers.hasOwnProperty('referer')) headers.referer = 'https://0.0.0.0:3000';
+
     const referer = (headers.referer.indexOf('?') >= 0)
       ? (`${headers.referer}&context=${context}`)
       : (`${headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop&context=${context}`);
 
     const newHeaders = {
       ...headers,
-      ...this.client.getAuthHeader(),
       referer,
       host: undefined,
     };
@@ -172,5 +166,13 @@ export default class Transport {
         resolve();
       }
     });
+  }
+
+  private verifyLogin(login) {
+    if (!login.refreshToken) {
+      throw new Error('Not authenticated. Please login using "domo login"');
+    }
+
+    return login;
   }
 }
