@@ -396,6 +396,7 @@ describe('Transport', () => {
       expect(client.isDomoRequest('/domo/users/v1')).to.be.true;
       expect(client.isDomoRequest('/domo/avatars/v1')).to.be.true;
       expect(client.isDomoRequest('/domo/other/v1')).to.be.true;
+      expect(client.isDomoRequest('/domo/magnum/v1/collections')).to.be.true;
     });
 
     it('should pass /data requests', () => {
@@ -408,7 +409,6 @@ describe('Transport', () => {
 
     it('should return false for invalid urls', () => {
       expect(client.isDomoRequest('/bad/url')).to.be.false;
-      expect(client.isDomoRequest('/data/alias')).to.be.false;
       expect(client.isDomoRequest('/dql')).to.be.false;
     });
   });
