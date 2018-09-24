@@ -8,6 +8,10 @@ Simple middleware to add to a local development server while developing Domo App
 npm install @domoinc/ryuu-proxy --save-dev
 ```
 
+## Gotchas
+
+`/domo`, `/data` and `/dql` are reserved request paths. This means that no other assets or resources can be found at these paths unless requests for them should be proxied as well.
+
 ## Usage
 
 This library leverages the last login session from your Domo CLI. If that session is no longer active or doesn't exist then the proxy won't work. Be sure that you've logged in before you start working:
