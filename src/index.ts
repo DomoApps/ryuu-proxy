@@ -21,7 +21,7 @@ export class Proxy {
           .then(options => this.transport.request(options))
           .then(rawRequest => rawRequest.pipe(res))
           .catch((err) => {
-            const status = (err.statusCode !== undefined) ? err.statusCode : 500;
+            const status = (typeof err.statusCode !== 'undefined') ? err.statusCode : 500;
             const msg = (err.body !== undefined) ? err.body : err;
 
             res.status(status).send(msg);
