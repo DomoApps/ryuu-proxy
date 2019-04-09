@@ -18,7 +18,7 @@ $ domo login
 
 ### Configuration
 ```js
-const { Proxy } - require('@domoinc/ryuu-proxy');
+const { Proxy } = require('@domoinc/ryuu-proxy');
 const manifest = require('./path/to/app/manifest.json');
 
 const config = {
