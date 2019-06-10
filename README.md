@@ -1,4 +1,6 @@
 # ryuu-proxy
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FDomoApps%2Fryuu-proxy.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FDomoApps%2Fryuu-proxy?ref=badge_shield)
+
 
 Simple middleware to add to a local development server while developing Domo Apps. The middleware will intercept any calls to `/data/v{d}`, `/sql/v{d}`, `/dql/v{d}` or `/domo/.../v{d}`, proxy an authenticated request to the Domo App service, and pipe the response back so that you can develop your Domo App locally and still get request data from Domo.
 
@@ -148,3 +150,7 @@ Apps using DQL or writeback features are required to supply an appContextId as p
 5. Copy the ID found between `//` and `.domoapps`. That is your app's `appContextId`
 
 `appContextId`s tie apps to cards. If you delete the card from which you retrieved the appContextId, you will have to get a new one from another card created from your app design.
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FDomoApps%2Fryuu-proxy.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FDomoApps%2Fryuu-proxy?ref=badge_large)
