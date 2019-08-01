@@ -38,12 +38,14 @@ export default class Transport {
   isDomoRequest(url: string): boolean {
     const domoPattern = /^\/domo\/.+\/v\d/;
     const dataPattern = /^\/data\/v\d\/.+/;
+    const sqlQueryPattern = /^\/sql\/v\d\/.+/;
     const dqlPattern = /^\/dql\/v\d\/.+/;
     const sqlPattern = /^\/sql\/v\d\/.+/;
 
     return (
       domoPattern.test(url)
       || dataPattern.test(url)
+      || sqlQueryPattern.test(url)
       || dqlPattern.test(url)
       || sqlPattern.test(url)
     );

@@ -1,6 +1,6 @@
 # ryuu-proxy
 
-Simple middleware to add to a local development server while developing Domo Apps. The middleware will intercept any calls to `/data/v1` or `/domo/v1`, proxy an authenticated request to the Domo App service, and pipe the response back so that you can develop your Domo App locally and still get request data from Domo.
+Simple middleware to add to a local development server while developing Domo Apps. The middleware will intercept any calls to `/data/v{d}`, `/sql/v{d}`, `/dql/v{d}` or `/domo/.../v{d}`, proxy an authenticated request to the Domo App service, and pipe the response back so that you can develop your Domo App locally and still get request data from Domo.
 
 ## Installation
 
@@ -18,11 +18,12 @@ $ domo login
 
 ### Configuration
 ```js
-const { Proxy } - require('@domoinc/ryuu-proxy');
+const { Proxy } = require('@domoinc/ryuu-proxy');
 const manifest = require('./path/to/app/manifest.json');
 
 const config = {
   manifest,
+  appContextId // Optional
 };
 
 // use `proxy` in your development server
