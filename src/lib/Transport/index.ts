@@ -2,10 +2,9 @@ import * as Promise from 'core-js/es6/promise';
 import * as Domo from 'ryuu-client';
 import * as request from 'request';
 import { Request } from 'express';
-import { IncomingMessage, IncomingHttpHeaders, ClientResponse } from 'http';
+import { IncomingMessage, IncomingHttpHeaders } from 'http';
 
 import { getMostRecentLogin } from '../utils';
-import { DomoException } from '../errors';
 import { Manifest, DomoClient, ProxyOptions } from '../models';
 import { CLIENT_ID } from '../constants';
 
@@ -47,6 +46,15 @@ export default class Transport {
       || sqlQueryPattern.test(url)
       || dqlPattern.test(url)
     );
+  }
+
+  isMultiPartRequest(headers: IncomingHttpHeaders): boolean {
+    return Object
+      .entries(headers)
+      .some(
+        ([header, value]) => header.toLowerCase() === 'content-type'
+        && value.toString().toLowerCase().includes('multipart'),
+      );
   }
 
   getManifest(): Manifest {
@@ -101,6 +109,21 @@ export default class Transport {
   }
 
   build(req: IncomingMessage): Promise<request.Options> {
+    let options;
+    return this.buildBasic(req)
+      .then((basicOptions) => {
+        options = basicOptions;
+        return this.parseBody(req);
+      })
+      .then((body) => {
+        return {
+          ...options,
+          body,
+        };
+      });
+  }
+
+  buildBasic(req: IncomingMessage): Promise<request.Options> {
     let api: string;
 
     return this.domainPromise
@@ -112,19 +135,12 @@ export default class Transport {
       .then((context) => {
         const jar = request.jar();
 
-        const options = {
+        return {
           jar,
           headers: this.prepareHeaders(req.headers, context.id),
           url: api,
           method: req.method,
-          body: null,
         };
-
-        return this.parseBody(req).then((body) => {
-          options.body = body;
-
-          return options;
-        });
       });
   }
 
@@ -135,13 +151,27 @@ export default class Transport {
       ? (`${headers.referer}&context=${context}`)
       : (`${headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop&context=${context}`);
 
-    const newHeaders = {
+    if (this.isMultiPartRequest(headers)) {
+      // remove properties that are provided by the form-data library in request
+      return {
+        ...Object.keys(headers).reduce(
+          (newHeaders, key) => {
+            if (key.toLowerCase() !== 'content-type' && key.toLowerCase() !== 'content-length') {
+              newHeaders[key] = headers[key];
+            }
+            return newHeaders;
+          },
+          {}),
+        referer,
+        host: undefined,
+      };
+    }
+
+    return {
       ...headers,
       referer,
       host: undefined,
     };
-
-    return newHeaders;
   }
 
   private parseBody(req: IncomingMessage): Promise<string|void> {
