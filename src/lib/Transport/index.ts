@@ -49,14 +49,12 @@ export default class Transport {
   }
 
   isMultiPartRequest(headers: IncomingHttpHeaders): boolean {
-    for (const header of Object.keys(headers)) {
-      if (header.toLowerCase() === 'content-type'
-       && headers[header].toString().toLowerCase().indexOf('multipart') !== -1) {
-        return true;
-      }
-    }
-
-    return false;
+    return Object
+      .entries(headers)
+      .some(
+        ([header, value]) => header.toLowerCase() === 'content-type'
+        && value.toString().toLowerCase().includes('multipart'),
+      );
   }
 
   getManifest(): Manifest {
@@ -111,13 +109,17 @@ export default class Transport {
   }
 
   build(req: IncomingMessage): Promise<request.Options> {
+    let options;
     return this.buildBasic(req)
-      .then((options) => {
-        return this.parseBody(req).then((body) => {
-          options.body = body;
-
-          return options;
-        });
+      .then((basicOptions) => {
+        options = basicOptions;
+        return this.parseBody(req);
+      })
+      .then((body) => {
+        return {
+          ...options,
+          body,
+        };
       });
   }
 
