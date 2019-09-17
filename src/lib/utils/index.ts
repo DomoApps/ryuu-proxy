@@ -26,15 +26,20 @@ export function getMostRecentLogin() {
 export const isOauthEnabled = (manifest: Manifest): boolean =>
   (Object.keys(manifest).includes(OAUTH_ENABLED) && manifest[OAUTH_ENABLED]);
 
-export function getOauthTokens(proxyId: string): Promise<OauthToken> {
+export function getOauthTokens(proxyId: string, scopes: string[] | undefined): Promise<OauthToken> {
   return getMostRecentLogin()
     .then((loginData) => {
       const instance = loginData.instance;
-      const scopes = JSON.parse(loginData.scopes);
+      const allScopes = (scopes !== undefined)
+        ? ([
+          'domoapps',
+          ...scopes,
+        ])
+        : (['domoapps']);
 
       return Promise.all([
-        keytar.getPassword(`domoapps-oauth-access-${scopes.join('-')}`, `${instance}-${proxyId}`),
-        keytar.getPassword(`domoapps-oauth-refresh-${scopes.join('-')}`, `${instance}-${proxyId}`),
+        keytar.getPassword(`domoapps-oauth-access-${allScopes.join('-')}`, `${instance}-${proxyId}`),
+        keytar.getPassword(`domoapps-oauth-refresh-${allScopes.join('-')}`, `${instance}-${proxyId}`),
       ]);
     })
     .then((tokens: [string, string]) => ({ access: tokens[0], refresh: tokens[1] }));

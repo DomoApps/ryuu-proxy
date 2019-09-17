@@ -36,6 +36,7 @@ export interface Manifest {
     height: number;
   };
   oAuthEnabled?: boolean;
+  scopes?: string[];
 }
 
 export interface OauthToken {

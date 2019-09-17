@@ -75,7 +75,7 @@ export default class Transport {
 
   getScopedOauthTokens(appContextId: string): Promise<OauthToken | undefined> {
     if (isOauthEnabled(this.manifest)) {
-      return getOauthTokens(appContextId);
+      return getOauthTokens(appContextId, this.manifest.scopes);
     }
 
     return new Promise(resolve => resolve(undefined));
