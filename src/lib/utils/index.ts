@@ -4,6 +4,9 @@ import * as fs from 'fs-extra';
 import * as keytar from 'keytar';
 import * as Promise from 'core-js/es6/promise';
 
+import { OAUTH_ENABLED } from '../constants';
+import { OauthToken, Manifest } from '../models';
+
 export function getMostRecentLogin() {
   const home = Domo.getHomeDir();
   const logins = glob.sync(home + '/login/*.json');
@@ -18,4 +21,21 @@ export function getMostRecentLogin() {
     loginData.refreshToken = refreshToken;
     return loginData;
   });
+}
+
+export const isOauthEnabled = (manifest: Manifest): boolean =>
+  (Object.keys(manifest).includes(OAUTH_ENABLED) && manifest[OAUTH_ENABLED]);
+
+export function getOauthTokens(proxyId: string): Promise<OauthToken> {
+  return getMostRecentLogin()
+    .then((loginData) => {
+      const instance = loginData.instance;
+      const scopes = JSON.parse(loginData.scopes);
+
+      return Promise.all([
+        keytar.getPassword(`domoapps-oauth-access-${scopes.join('-')}`, `${instance}-${proxyId}`),
+        keytar.getPassword(`domoapps-oauth-refresh-${scopes.join('-')}`, `${instance}-${proxyId}`),
+      ]);
+    })
+    .then((tokens: [string, string]) => ({ access: tokens[0], refresh: tokens[1] }));
 }

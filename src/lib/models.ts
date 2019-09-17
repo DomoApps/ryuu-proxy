@@ -35,4 +35,10 @@ export interface Manifest {
     width: number;
     height: number;
   };
+  oAuthEnabled?: boolean;
+}
+
+export interface OauthToken {
+  access: string;
+  refresh: string;
 }

@@ -1,6 +1,6 @@
 {
   "name": "@domoinc/ryuu-proxy",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "a middleware that provides a proxy for local domo app development",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

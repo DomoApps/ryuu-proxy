@@ -4,8 +4,8 @@ import * as request from 'request';
 import { Request } from 'express';
 import { IncomingMessage, IncomingHttpHeaders } from 'http';
 
-import { getMostRecentLogin } from '../utils';
-import { Manifest, DomoClient, ProxyOptions } from '../models';
+import { getMostRecentLogin, isOauthEnabled, getOauthTokens } from '../utils';
+import { Manifest, DomoClient, ProxyOptions, OauthToken } from '../models';
 import { CLIENT_ID } from '../constants';
 
 export default class Transport {
@@ -13,6 +13,7 @@ export default class Transport {
   private clientPromise: Promise<DomoClient>;
   private domainPromise: Promise;
   private appContextId: string;
+  private oauthTokenPromise: Promise<OauthToken | undefined>;
 
   constructor({
     manifest,
@@ -22,6 +23,7 @@ export default class Transport {
     this.appContextId = (typeof appContextId === 'string') ? appContextId : Domo.createUUID();
     this.clientPromise = this.getLastLogin();
     this.domainPromise = this.getDomoDomain();
+    this.oauthTokenPromise = this.getScopedOauthTokens(appContextId);
   }
 
   request = (options: request.Options) => this.clientPromise
@@ -69,6 +71,14 @@ export default class Transport {
     return getMostRecentLogin()
       .then(this.verifyLogin)
       .then(recentLogin => new Domo(recentLogin.instance, recentLogin.refreshToken, CLIENT_ID));
+  }
+
+  getScopedOauthTokens(appContextId: string): Promise<OauthToken | undefined> {
+    if (isOauthEnabled(this.manifest)) {
+      return getOauthTokens(appContextId);
+    }
+
+    return new Promise(resolve => resolve(undefined));
   }
 
   getDomoDomain(): Promise<string> {
@@ -132,46 +142,82 @@ export default class Transport {
 
         return this.createContext();
       })
-      .then((context) => {
+      .then(context => (this.prepareHeaders(req.headers, context.id)))
+      .then((headers) => {
         const jar = request.jar();
 
         return {
           jar,
-          headers: this.prepareHeaders(req.headers, context.id),
+          headers,
           url: api,
           method: req.method,
         };
       });
   }
 
-  private prepareHeaders(headers: IncomingHttpHeaders, context: string): IncomingHttpHeaders {
-    if (!headers.hasOwnProperty('referer')) headers.referer = 'https://0.0.0.0:3000';
+  private prepareHeaders(headers: IncomingHttpHeaders, context: string): Promise<IncomingHttpHeaders> {
+    return this.oauthTokenPromise.then((tokens: OauthToken | undefined) => {
+      if (!headers.hasOwnProperty('referer')) headers.referer = 'https://0.0.0.0:3000';
+      const referer = (headers.referer.indexOf('?') >= 0)
+        ? (`${headers.referer}&context=${context}`)
+        : (`${headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop&context=${context}`);
 
-    const referer = (headers.referer.indexOf('?') >= 0)
-      ? (`${headers.referer}&context=${context}`)
-      : (`${headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop&context=${context}`);
+      const cookieHeader = this.prepareCookies(headers, tokens);
 
-    if (this.isMultiPartRequest(headers)) {
-      // remove properties that are provided by the form-data library in request
+      const filters: string[] = (this.isMultiPartRequest(headers))
+        ? ([
+          'content-type',
+          'content-length',
+          'cookie',
+        ])
+        : ([
+          'cookie',
+        ]);
+
       return {
         ...Object.keys(headers).reduce(
           (newHeaders, key) => {
-            if (key.toLowerCase() !== 'content-type' && key.toLowerCase() !== 'content-length') {
+            if (!filters.includes(key.toLowerCase())) {
               newHeaders[key] = headers[key];
             }
             return newHeaders;
           },
           {}),
+        ...cookieHeader,
         referer,
         host: undefined,
       };
+    });
+  }
+
+  private prepareCookies(headers: IncomingHttpHeaders, tokens: OauthToken | undefined): { cookie: string } | {} {
+    const existingCookie = Object.keys(headers).reduce(
+      (newHeaders, key) => {
+        if (key.toLowerCase() === 'cookie') {
+          // handle if cookie is an array
+          if (Array.isArray(headers[key])) {
+            newHeaders['cookie'] = (headers[key] as string[]).join('; ');
+          } else {
+            newHeaders['cookie'] = headers[key] as string;
+          }
+        }
+        return newHeaders;
+      },
+      {});
+
+    const tokenCookie = (tokens !== undefined)
+      ? ({ cookie: `_daatv1=${ tokens.access }; _dartv1=${ tokens.refresh }` })
+      : ({});
+
+    if (existingCookie['cookie'] !== undefined && tokenCookie['cookie'] !== undefined) {
+      return ({ cookie: `${existingCookie['cookie']}; ${tokenCookie['cookie']}` });
     }
 
-    return {
-      ...headers,
-      referer,
-      host: undefined,
-    };
+    if (existingCookie['cookie'] === undefined) {
+      return tokenCookie;
+    }
+
+    return existingCookie;
   }
 
   private parseBody(req: IncomingMessage): Promise<string|void> {
