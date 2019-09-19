@@ -35,4 +35,11 @@ export interface Manifest {
     width: number;
     height: number;
   };
+  oAuthEnabled?: boolean;
+  scopes?: string[];
+}
+
+export interface OauthToken {
+  access: string;
+  refresh: string;
 }
