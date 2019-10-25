@@ -1,17 +1,17 @@
 import * as Promise from 'core-js/es6/promise';
 import * as sinon from 'sinon';
-import * as nock from 'nock';
 import * as Domo from 'ryuu-client';
-import * as request from 'request';
 import * as MockReq from 'mock-req';
 import { IncomingMessage } from 'http';
-import { Request } from 'express';
 import { expect } from 'chai';
 
 import { default as Transport } from '.';
-import { Manifest, DomoClient } from '../models';
+import { Manifest } from '../models';
+
+const proxyId = 'textProxyId';
 
 const manifest: Manifest = {
+  proxyId,
   id: 'test-id',
   name: 'test-app',
   version: '1.0.0',
@@ -28,8 +28,8 @@ describe('Transport', () => {
     getDomoDomainStub = sinon
       .stub(Transport.prototype, 'getDomoDomain')
       .returns(Promise.resolve(domoDomain));
-
-
+      
+      
     done();
   });
 
@@ -143,7 +143,7 @@ describe('Transport', () => {
       const promise: Promise = client.getDomoDomain();
       expect(promise).to.exist;
       promise.then((res) => {
-        const pattern = /^https:\/\/[a-z0-9\-]{36}.domoapps.dev2.domo.com/g;
+        const pattern = /^https:\/\/(.*).domoapps.dev2.domo.com/g;
         expect(res).to.exist;
         expect(pattern.test(res)).to.be.true;
         done();
@@ -151,12 +151,11 @@ describe('Transport', () => {
     });
 
     it('should accept an overridden appContextId', (done) => {
-      const appContextId = 'textContextId';
-      client = new Transport({ manifest, appContextId });
+      client = new Transport({ manifest });
       client.getDomoDomain().then((res: string) => {
         const pattern = /^https:\/\/(.*).domoapps.dev2.domo.com/g;
         const matches = pattern.exec(res);
-        expect(matches[1]).to.equal(appContextId);
+        expect(matches[1]).to.equal(proxyId);
         done();
       });
     });

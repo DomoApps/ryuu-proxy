@@ -12,7 +12,6 @@ export interface DomoClient {
 
 export interface ProxyOptions {
   manifest: Manifest;
-  appContextId?: string;
 }
 
 export interface FieldMap {
@@ -37,6 +36,7 @@ export interface Manifest {
   };
   oAuthEnabled?: boolean;
   scopes?: string[];
+  proxyId?: string;
 }
 
 export interface OauthToken {

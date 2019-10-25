@@ -26,6 +26,11 @@ export function getMostRecentLogin() {
 export const isOauthEnabled = (manifest: Manifest): boolean =>
   (Object.keys(manifest).includes(OAUTH_ENABLED) && manifest[OAUTH_ENABLED]);
 
+export const getProxyId = (manifest: Manifest): string =>
+  (manifest.proxyId !== undefined && typeof manifest.proxyId === 'string')
+    ? (manifest.proxyId)
+    : (Domo.createUUID());
+
 export function getOauthTokens(proxyId: string, scopes: string[] | undefined): Promise<OauthToken> {
   return getMostRecentLogin()
     .then((loginData) => {
