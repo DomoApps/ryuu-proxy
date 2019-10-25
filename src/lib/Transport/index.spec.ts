@@ -28,8 +28,8 @@ describe('Transport', () => {
     getDomoDomainStub = sinon
       .stub(Transport.prototype, 'getDomoDomain')
       .returns(Promise.resolve(domoDomain));
-      
-      
+
+
     done();
   });
 
