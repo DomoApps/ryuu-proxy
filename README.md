@@ -32,7 +32,7 @@ The proxy constructor expects a `config` object. Certain properties are required
 - `manifest`: The parsed contents of a project's manifest.json file. `domo publish` have been run at least once to ensure the `manifest.json` file has an `id` property
 
 #### Optional Configuration Properties
-- `manifest.proxyId`: An advanced property required for projects leveraging DQL, writebacks, or Ouath. If you are unsure of whether or not you need this, you most likely don't. To get a proxyId, see "Getting a proxyId" below
+- `manifest.proxyId`: An advanced property required for projects leveraging DQL, writebacks, or Oauth. If you are unsure of whether or not you need this, you most likely don't. To get a proxyId, see "Getting a proxyId" below
 
 ### With [Express](https://expressjs.com/) / [Connect](https://github.com/senchalabs/connect)
 
