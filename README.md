@@ -137,7 +137,7 @@ const server = http.createServer((req, res) => {
 ```
 
 ## Getting a proxyId (Advanced)
-Apps using DQL or writeback features are required to supply an proxyId as part of the proxy configuration. This allows the proxy to know how to properly route requests. The proxyId can be found as part of the URL for the iframe in which your app is displayed. It will be of the form `XXXXXXXX-XXXX-4XXX-XXXX-XXXXXXXXXXXX`. To find the ID:
+Apps using DQL, writeback, or oAuth features are required to supply an proxyId as part of the proxy configuration. This allows the proxy to know how to properly route requests. The proxyId can be found as part of the URL for the iframe in which your app is displayed. It will be of the form `XXXXXXXX-XXXX-4XXX-XXXX-XXXXXXXXXXXX`. To find the ID:
 1. Make sure the app has been published at least once with `domo publish`
 2. Publish a new card based on your app design, or navigate to an existing card made from your app design
 3. Right-click anywhere in the card and choose "Inspect element"
