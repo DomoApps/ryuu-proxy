@@ -4,7 +4,7 @@ import * as request from 'request';
 import { Request } from 'express';
 import { IncomingMessage, IncomingHttpHeaders } from 'http';
 
-import { getMostRecentLogin, isOauthEnabled, getOauthTokens } from '../utils';
+import { getMostRecentLogin, getProxyId, isOauthEnabled, getOauthTokens } from '../utils';
 import { Manifest, DomoClient, ProxyOptions, OauthToken } from '../models';
 import { CLIENT_ID } from '../constants';
 
@@ -15,15 +15,12 @@ export default class Transport {
   private appContextId: string;
   private oauthTokenPromise: Promise<OauthToken | undefined>;
 
-  constructor({
-    manifest,
-    appContextId,
-  }: ProxyOptions) {
+  constructor({ manifest }: ProxyOptions) {
     this.manifest = manifest;
-    this.appContextId = (typeof appContextId === 'string') ? appContextId : Domo.createUUID();
+    this.appContextId = getProxyId(manifest);
     this.clientPromise = this.getLastLogin();
     this.domainPromise = this.getDomoDomain();
-    this.oauthTokenPromise = this.getScopedOauthTokens(appContextId);
+    this.oauthTokenPromise = this.getScopedOauthTokens();
   }
 
   request = (options: request.Options) => this.clientPromise
@@ -73,9 +70,9 @@ export default class Transport {
       .then(recentLogin => new Domo(recentLogin.instance, recentLogin.refreshToken, CLIENT_ID));
   }
 
-  getScopedOauthTokens(appContextId: string): Promise<OauthToken | undefined> {
+  getScopedOauthTokens(): Promise<OauthToken | undefined> {
     if (isOauthEnabled(this.manifest)) {
-      return getOauthTokens(appContextId, this.manifest.scopes);
+      return getOauthTokens(this.appContextId, this.manifest.scopes);
     }
 
     return new Promise(resolve => resolve(undefined));

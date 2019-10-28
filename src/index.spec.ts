@@ -1,11 +1,9 @@
 import * as Promise from 'core-js/es6/promise';
 import * as sinon from 'sinon';
-import * as nock from 'nock';
 import * as Domo from 'ryuu-client';
-import * as request from 'request';
 import { expect } from 'chai';
 import { Proxy } from '.';
-import { Manifest, DomoClient } from './lib/models';
+import { Manifest } from './lib/models';
 import Transport from './lib/Transport';
 
 describe('Proxy', () => {
