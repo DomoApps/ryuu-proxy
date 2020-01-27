@@ -38,12 +38,14 @@ export default class Transport {
     const dataPattern = /^\/data\/v\d\/.+/;
     const sqlQueryPattern = /^\/sql\/v\d\/.+/;
     const dqlPattern = /^\/dql\/v\d\/.+/;
+    const apiPattern = /^\/api\/.+/;
 
     return (
       domoPattern.test(url)
       || dataPattern.test(url)
       || sqlQueryPattern.test(url)
       || dqlPattern.test(url)
+      || apiPattern.test(url)
     );
   }
 
