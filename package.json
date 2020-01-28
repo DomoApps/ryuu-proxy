@@ -12,7 +12,13 @@
     "build": "rm -rf ./dist && tsc",
     "start": "npm run build -- -w",
     "prepublishOnly": "npm run test && npm run build",
-    "clean": "rm -rf node_modules && npm install"
+    "clean": "rm -rf node_modules && npm install",
+    "build:schematics": "tsc -p tsconfig.schematics.json",
+    "copy:schemas": "rsync -Rr schematics/*/schema.json ./dist/",
+    "copy:files": "rsync -Rr schematics/*/files/** ./dist/",
+    "copy:collection": "cp schematics/collection.json ./dist/schematics/collection.json",
+    "postbuild:schematics": "npm run copy:schemas && npm run copy:files && npm run copy:collection",
+    "build:all":"npm run build && npm run build:schematics"
   },
   "author": "AppTeam6 <Squad.AppTeam6@domo.com>",
   "repository": {
@@ -28,13 +34,14 @@
     "domo apps"
   ],
   "devDependencies": {
+    "@types/busboy": "^0.2.3",
     "@types/chai": "^4.0.6",
     "@types/express": "^4.0.36",
+    "@types/keytar": "^4.4.2",
     "@types/mocha": "^2.2.39",
-    "@types/node": "^8.0.53",
+    "@types/node": "^13.5.1",
     "@types/request": "^2.47.1",
     "@types/sinon": "^4.0.0",
-    "@types/busboy": "^0.2.3",
     "chai": "^4.1.2",
     "cross-env": "^5.0.1",
     "json-loader": "^0.5.7",
@@ -46,14 +53,14 @@
     "tslint-config-airbnb": "^5.2.1",
     "tslint-loader": "^3.5.3",
     "tsutils": "^2.13.0",
-    "typescript": "^2.3.2"
+    "typescript": "^3.7.5"
   },
   "dependencies": {
     "busboy": "^0.3.1",
     "core-js": "^2.5.3",
     "fs-extra": "^4.0.2",
     "glob": "^7.1.2",
-    "keytar": "^4.2.1",
+    "keytar": "^4.13.0",
     "request": "^2.81.0",
     "ryuu-client": "^3.0.0"
   },
