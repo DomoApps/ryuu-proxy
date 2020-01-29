@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "type":"object",
+  "id": "RyuuProxySchematicsSchema",
+  "description": "Ryuu Proxy Schematic property schema",
+  "properties": {
+    "project":{
+      "type":"string",
+      "description": "The project name",
+      "$default":{
+        "$source":"projectName"
+      }
+    }
+  }
+}
