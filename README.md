@@ -8,6 +8,24 @@ Simple middleware to add to a local development server while developing Domo App
 npm install @domoinc/ryuu-proxy --save-dev
 ```
 
+### [Angular](angular.io) Schematics
+
+Schematics are included with `@domoinc/ryuu-proxy`. Using the command below will install the proxy and configure your Angular project to use the proxy by default.
+
+```
+ng add @domoinc/ryuu-proxy
+```
+
+Running `ng add` will:
+* Ensure project dependencies are placed in `package.json`
+* Add the following files at the root of your project
+  * `domo/manifest.json`
+  * `domo/thumbnail.png`
+  * `proxy.js`
+  * `proxy.conf.js`
+* configure the `ng serve` command to use the new proxy config
+* Add the `start:proxy` script command to serve with proxy enabled
+
 ## Usage
 
 This library leverages the last login session from your Domo CLI. If that session is no longer active or doesn't exist then the proxy won't work. Be sure that you've logged in before you start working:
