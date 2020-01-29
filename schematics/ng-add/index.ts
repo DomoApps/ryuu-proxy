@@ -6,7 +6,10 @@ import {
   mergeWith,
   url,
   template,
-  apply
+  apply,
+  noop,
+  move,
+  MergeStrategy,
 } from '@angular-devkit/schematics';
 import { NodePackageInstallTask } from '@angular-devkit/schematics/tasks';
 import { strings } from '@angular-devkit/core';
@@ -14,7 +17,7 @@ import { strings } from '@angular-devkit/core';
 function updateJsonFile(
   host: Tree,
   path: string,
-  callback: (json: any) => void
+  callback: (json: any) => void,
 ): Tree {
   const source = host.read(path);
   if (source) {
@@ -28,7 +31,7 @@ function updateJsonFile(
 
 function addProxyToAngularJson(options: any): Rule {
   return (tree: Tree) => {
-    return updateJsonFile(tree, 'angular.json', json => {
+    return updateJsonFile(tree, 'angular.json', (json) => {
       const projectName = options.project || json.defaultProject;
       const project = json.projects[projectName];
       const opts = project.architect.serve.options;
@@ -37,12 +40,12 @@ function addProxyToAngularJson(options: any): Rule {
   };
 }
 
-function addDepsToPackage(_options: any): Rule {
+function addDepsToPackage(): Rule {
   return (tree: Tree) => {
     return updateJsonFile(tree, 'package.json', (json: any) => {
       json['devDependencies'] = json['devDependencies'] || {};
       const devDeps = json['devDependencies'];
-      // devDeps['@domoinc/ryuu-proxy'] = '^4.0.1';
+      devDeps['@domoinc/ryuu-proxy'] = '^4.0.1';
       devDeps['express'] = '^4.17.1';
       const scripts = json.scripts;
 
@@ -54,15 +57,34 @@ function addDepsToPackage(_options: any): Rule {
   };
 }
 
+function addProxyFiles(): Rule {
+  return mergeWith(url('./files/proxy'), MergeStrategy.Overwrite);
+}
+
+function addDomoFiles(options: any): Rule {
+  return (tree: Tree) => {
+    if (!tree.exists('domo/manifest.json')) {
+      return mergeWith(
+        apply(url('./files/domo'), [
+          template({ ...options, ...strings }),
+          move('domo'),
+        ]),
+      );
+    }
+    return noop();
+  };
+}
+
 // You don't have to export the function as default. You can also have more than one rule factory
 // per file.
-export default function ngAdd(_options: any): Rule {
-  return (_tree: Tree, _context: SchematicContext) => {
-    _context.addTask(new NodePackageInstallTask());
+export default function ngAdd(options: any): Rule {
+  return (_tree: Tree, context: SchematicContext) => {
+    context.addTask(new NodePackageInstallTask());
     return chain([
-      addProxyToAngularJson(_options),
-      addDepsToPackage(_options),
-      mergeWith(apply(url('./files'), [template({ ..._options, ...strings })]))
+      addProxyToAngularJson(options),
+      addDepsToPackage(),
+      addProxyFiles(),
+      addDomoFiles(options),
     ]);
   };
 }
