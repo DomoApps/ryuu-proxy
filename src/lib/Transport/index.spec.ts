@@ -1,4 +1,4 @@
-import * as Promise from 'core-js/es6/promise';
+import * as Promise from 'core-js/features/promise';
 import * as sinon from 'sinon';
 import * as Domo from 'ryuu-client';
 import * as MockReq from 'mock-req';

@@ -1,5 +1,5 @@
-import * as Promise from 'core-js/es6/promise';
-import  * as path from 'path';
+import * as Promise from 'core-js/features/promise';
+import * as path from 'path';
 import * as Busboy from 'busboy';
 import * as os from 'os';
 import { createWriteStream, createReadStream } from 'fs';
