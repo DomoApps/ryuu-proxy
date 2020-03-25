@@ -2,7 +2,7 @@ import * as Domo from 'ryuu-client';
 import * as glob from 'glob';
 import * as fs from 'fs-extra';
 import * as keytar from 'keytar';
-import * as Promise from 'core-js/es6/promise';
+import * as Promise from 'core-js/features/promise';
 
 import { OAUTH_ENABLED } from '../constants';
 import { OauthToken, Manifest } from '../models';

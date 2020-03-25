@@ -1,0 +1,7 @@
+spec: src/**/*.spec.ts
+require: 'ts-node/register'
+reporter: 'list'
+watch-files:
+  - 'src/**/*.ts'
+recursive: true
+color: true
