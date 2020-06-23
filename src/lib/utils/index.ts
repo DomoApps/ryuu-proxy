@@ -1,9 +1,9 @@
 import * as Domo from 'ryuu-client';
 import * as glob from 'glob';
 import * as fs from 'fs-extra';
-import * as keytar from 'keytar';
 import * as Promise from 'core-js/features/promise';
 
+import { configstore } from './configstore';
 import { OAUTH_ENABLED } from '../constants';
 import { OauthToken, Manifest } from '../models';
 
@@ -17,10 +17,9 @@ export function getMostRecentLogin() {
   });
   const loginData = fs.readJsonSync(recent);
 
-  return keytar.getPassword('domoapps-cli', loginData.instance).then((refreshToken) => {
-    loginData.refreshToken = refreshToken;
-    return loginData;
-  });
+  const refreshToken = configstore.get(loginData.instance)
+  loginData.refreshToken = refreshToken;
+  return Promise.resolve(loginData);
 }
 
 export const isOauthEnabled = (manifest: Manifest): boolean =>
@@ -43,8 +42,8 @@ export function getOauthTokens(proxyId: string, scopes: string[] | undefined): P
         : (['domoapps']);
 
       return Promise.all([
-        keytar.getPassword(`domoapps-oauth-access-${allScopes.join('-')}`, `${instance}-${proxyId}`),
-        keytar.getPassword(`domoapps-oauth-refresh-${allScopes.join('-')}`, `${instance}-${proxyId}`),
+        configstore.get(`${instance}-${proxyId}`),
+        configstore.get(`${instance}-${proxyId}`),
       ]);
     })
     .then((tokens: [string, string]) => ({ access: tokens[0], refresh: tokens[1] }));
