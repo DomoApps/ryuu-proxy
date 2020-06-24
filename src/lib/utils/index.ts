@@ -42,8 +42,8 @@ export function getOauthTokens(proxyId: string, scopes: string[] | undefined): P
         : (['domoapps']);
 
       return Promise.all([
-        configstore.get(`${instance}-${proxyId}`),
-        configstore.get(`${instance}-${proxyId}`),
+        configstore.get(`${instance}-${proxyId}-accessToken`),
+        configstore.get(`${instance}-${proxyId}-refreshToken`),
       ]);
     })
     .then((tokens: [string, string]) => ({ access: tokens[0], refresh: tokens[1] }));
