@@ -17,7 +17,7 @@ export function getMostRecentLogin() {
   });
   const loginData = fs.readJsonSync(recent);
 
-  const refreshToken = configstore.get(loginData.instance)
+  const refreshToken = configstore.get(loginData.instance);
   loginData.refreshToken = refreshToken;
   return Promise.resolve(loginData);
 }
@@ -42,8 +42,8 @@ export function getOauthTokens(proxyId: string, scopes: string[] | undefined): P
         : (['domoapps']);
 
       return Promise.all([
-        configstore.get(`${instance}-${proxyId}-accessToken`),
-        configstore.get(`${instance}-${proxyId}-refreshToken`),
+        configstore.get(`${instance}-${proxyId}-${allScopes.join('-')}-accessToken`),
+        configstore.get(`${instance}-${proxyId}-${allScopes.join('-')}-refreshToken`),
       ]);
     })
     .then((tokens: [string, string]) => ({ access: tokens[0], refresh: tokens[1] }));
