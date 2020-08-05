@@ -9,14 +9,14 @@ import { OauthToken, Manifest } from '../models';
 
 export function getMostRecentLogin() {
   const home = Domo.getHomeDir();
-  const logins = glob.sync(home + '*.json');
+  const logins = glob.sync(`${home} + *.json`);
   if (logins.length === 0) return Promise.resolve({});
 
   const recent = logins.reduce((prev, next) => {
     return fs.statSync(prev).mtime > fs.statSync(next).mtime ? prev : next;
   });
   const loginData = fs.readJsonSync(recent);
-  const configstore = new Configstore(home + '/' + loginData.instance + '.json');
+  const configstore = new Configstore(`${home}/${loginData.instance}.json`);
   loginData.refreshToken = configstore.get('refreshToken');
   return Promise.resolve(loginData);
 }
@@ -32,8 +32,7 @@ export const getProxyId = (manifest: Manifest): string =>
 export function getOauthTokens(proxyId: string, scopes: string[] | undefined): Promise<OauthToken> {
   return getMostRecentLogin()
     .then((loginData) => {
-      const home = Domo.getHomeDir();
-      const configstore = new Configstore(home + '/' + loginData.instance + '.json');
+      const configstore = new Configstore(`${Domo.getHomeDir()}/${loginData.instance}.json`);
       const allScopes = (scopes !== undefined)
         ? ([
           'domoapps',
