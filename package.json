@@ -1,6 +1,6 @@
 {
   "name": "@domoinc/ryuu-proxy",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "description": "a middleware that provides a proxy for local domo app development",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,14 +29,14 @@
   ],
   "devDependencies": {
     "@types/busboy": "^0.2.3",
-    "@types/chai": "^4.0.6",
+    "@types/chai": "^4.2.12",
     "@types/configstore": "^4.0.0",
-    "@types/express": "^4.0.36",
+    "@types/express": "^4.17.7",
     "@types/mocha": "^2.2.39",
     "@types/node": "^8.0.53",
-    "@types/request": "^2.47.1",
+    "@types/request": "^2.48.5",
     "@types/sinon": "^4.0.0",
-    "chai": "^4.1.2",
+    "chai": "^4.2.0",
     "cross-env": "^5.0.1",
     "json-loader": "^0.5.7",
     "mocha": "^7.1.0",
@@ -44,21 +44,21 @@
     "sinon": "^4.1.2",
     "ts-node": "^3.1.0",
     "tslint": "^5.2.0",
-    "tslint-config-airbnb": "^5.2.1",
-    "tslint-loader": "^3.5.3",
+    "tslint-config-airbnb": "^5.11.2",
+    "tslint-loader": "^3.5.4",
     "tsutils": "^2.13.0",
     "typescript": "^2.3.2"
   },
   "dependencies": {
     "busboy": "^0.3.1",
     "configstore": "^5.0.1",
-    "core-js": "^3.6.4",
+    "core-js": "^3.6.5",
     "fs-extra": "^4.0.2",
-    "glob": "^7.1.2",
-    "request": "^2.81.0",
-    "ryuu-client": "^4.0.3"
+    "glob": "^7.1.6",
+    "request": "^2.88.2",
+    "ryuu-client": "^4.0.4"
   },
   "peerDependencies": {
-    "ryuu": "^3.3.11"
+    "ryuu": "^3.4.3"
   }
 }
