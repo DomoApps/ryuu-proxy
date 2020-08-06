@@ -22,7 +22,6 @@ export class Proxy {
 
     res.status(status).send(msg);
   }
-
   express = () => (req: Request, res: Response, next: NextFunction): Promise => {
     if (this.transport.isDomoRequest(req.url)) {
       if (this.transport.isMultiPartRequest(req.headers)) {

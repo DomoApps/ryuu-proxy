@@ -13,7 +13,7 @@
     "noImplicitAny": false,
     "declaration": true,
     "lib": ["es2015.iterable", "es5", "es2017"],
-    "outDir": "dist"
+    "outDir": "dist",
   },
   "exclude": [
     "node_modules",
