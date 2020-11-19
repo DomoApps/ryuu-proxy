@@ -2,6 +2,7 @@ import * as Promise from 'core-js/features/promise';
 import * as path from 'path';
 import * as Busboy from 'busboy';
 import * as os from 'os';
+import * as FormData from 'form-data';
 import { createWriteStream, createReadStream } from 'fs';
 import { Request, Response, NextFunction } from 'express';
 import { IncomingMessage } from 'http';
@@ -38,14 +39,16 @@ export class Proxy {
           this.transport
             .buildBasic(req)
             .then((options) => {
+              const form = new FormData();
+              form.append(fieldName, createReadStream(filePath));
+
               return this.transport.request({
                 ...options,
-                formData: {
-                  [fieldName]: createReadStream(filePath),
-                },
+                headers: { ...options.headers, ...form.getHeaders() },
+                data: form,
               });
             })
-            .then(rawRequest => rawRequest.pipe(res))
+            .then(rawRequest => rawRequest.data.pipe(res))
             .catch(err => this.onError(err, res));
         });
 
@@ -55,7 +58,7 @@ export class Proxy {
       return this.transport
         .build(req)
         .then(options => this.transport.request(options))
-        .then(rawRequest => rawRequest.pipe(res))
+        .then(rawRequest => rawRequest.data.pipe(res))
         .catch(err => this.onError(err, res));
     }
 

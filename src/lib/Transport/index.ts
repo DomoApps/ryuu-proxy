@@ -142,14 +142,15 @@ export default class Transport {
 
   buildBasic(req: IncomingMessage): Promise<request.Options> {
     let api: string;
-
+    let hostname: string;
     return this.domainPromise
       .then((domain) => {
-        api = `${domain}${req.url}`;
+        api = `${domain.url}${req.url}`;
+        hostname = domain.url;
 
         return this.createContext();
       })
-      .then(context => (this.prepareHeaders(req.headers, context.id)))
+      .then(context => (this.prepareHeaders(req.headers, context.id, hostname)))
       .then((headers) => {
         const jar = request.jar();
 
@@ -157,12 +158,14 @@ export default class Transport {
           jar,
           headers,
           url: api,
+          responseType: 'stream',
           method: req.method,
         };
       });
   }
 
-  private prepareHeaders(headers: IncomingHttpHeaders, context: string): Promise<IncomingHttpHeaders> {
+  private prepareHeaders(headers: IncomingHttpHeaders, context: string, host: string): Promise<IncomingHttpHeaders> {
+    const hostname = host.replace('https://', '');
     return this.oauthTokenPromise.then((tokens: OauthToken | undefined) => {
       if (!headers.hasOwnProperty('referer')) headers.referer = 'https://0.0.0.0:3000';
       const referer = (headers.referer.indexOf('?') >= 0)
@@ -192,7 +195,7 @@ export default class Transport {
           {}),
         ...cookieHeader,
         referer,
-        host: 'domo.domo.com',
+        host: hostname,
       };
     });
   }
