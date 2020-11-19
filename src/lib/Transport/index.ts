@@ -1,8 +1,11 @@
 import * as Promise from 'core-js/features/promise';
-import * as Domo from 'ryuu-client';
+import Domo = require('ryuu-client');
+import qs = require('qs');
 import * as request from 'request';
 import { Request } from 'express';
 import { IncomingMessage, IncomingHttpHeaders } from 'http';
+const { createGzip } = require('zlib');
+const gzip = createGzip();
 
 import { getMostRecentLogin, getProxyId, isOauthEnabled, getOauthTokens } from '../utils';
 import { Manifest, DomoClient, ProxyOptions, OauthToken } from '../models';
@@ -17,9 +20,9 @@ export default class Transport {
 
   constructor({ manifest }: ProxyOptions) {
     this.manifest = manifest;
-    this.appContextId = getProxyId(manifest);
+    this.appContextId = (manifest['proxyId']) ? manifest.proxyId : Domo.createUUID();
     this.clientPromise = this.getLastLogin();
-    this.domainPromise = this.getDomoDomain();
+    this.domainPromise = this.clientPromise.then((client) => { return client.getDomoappsData(this.manifest); });
     this.oauthTokenPromise = this.getScopedOauthTokens();
   }
 
@@ -109,7 +112,10 @@ export default class Transport {
         const options = {
           method: 'POST',
           url: `${client.server}/domoapps/apps/v2/contexts`,
-          json: { designId: this.manifest.id, mapping: this.manifest.mapping },
+          data: { designId: this.manifest.id, mapping: this.manifest.mapping },
+          headers: {
+            'content-type': 'application/json',
+          },
         };
 
         return client.processRequest(options);
@@ -122,6 +128,8 @@ export default class Transport {
     return this.buildBasic(req)
       .then((basicOptions) => {
         options = basicOptions;
+        options.transformResponse = [];
+        options.responseType = 'stream';
         return this.parseBody(req);
       })
       .then((body) => {
@@ -184,7 +192,7 @@ export default class Transport {
           {}),
         ...cookieHeader,
         referer,
-        host: undefined,
+        host: 'domo.domo.com',
       };
     });
   }
