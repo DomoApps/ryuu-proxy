@@ -1,11 +1,10 @@
 import * as Promise from 'core-js/features/promise';
 import Domo = require('ryuu-client');
-import qs = require('qs');
-import * as request from 'request';
+import * as axios from 'axios';
 import { Request } from 'express';
 import { IncomingMessage, IncomingHttpHeaders } from 'http';
-const { createGzip } = require('zlib');
-const gzip = createGzip();
+const axiosCookieJarSupport = require('axios-cookiejar-support').default;
+const tough = require('tough-cookie');
 
 import { getMostRecentLogin, getProxyId, isOauthEnabled, getOauthTokens } from '../utils';
 import { Manifest, DomoClient, ProxyOptions, OauthToken } from '../models';
@@ -26,7 +25,7 @@ export default class Transport {
     this.oauthTokenPromise = this.getScopedOauthTokens();
   }
 
-  request = (options: request.Options) => this.clientPromise
+  request = (options: axios.AxiosRequestConfig) => this.clientPromise
     .then(client => client.processRequestRaw(options))
 
   getEnv(instance: string): string {
@@ -86,6 +85,7 @@ export default class Transport {
   getDomoDomain(): Promise<string> {
     const uuid = this.appContextId;
     let domoClient;
+    const self = this;
 
     return this.clientPromise
       .then((client) => {
@@ -99,7 +99,7 @@ export default class Transport {
       .then(
         res => `https://${uuid}.${JSON.parse(res).domoappsDomain}`,
         () => {
-          const env = this.getEnv(domoClient.instance);
+          const env = self.getEnv(domoClient.instance);
 
           return `https://${uuid}.domoapps.${env}`;
         },
@@ -123,7 +123,7 @@ export default class Transport {
       .then(res => res[0]);
   }
 
-  build(req: IncomingMessage): Promise<request.Options> {
+  build(req: IncomingMessage): Promise<axios.AxiosRequestConfig> {
     let options;
     return this.buildBasic(req)
       .then((basicOptions) => {
@@ -132,15 +132,15 @@ export default class Transport {
         options.responseType = 'stream';
         return this.parseBody(req);
       })
-      .then((body) => {
+      .then((data) => {
         return {
           ...options,
-          body,
+          data,
         };
       });
   }
 
-  buildBasic(req: IncomingMessage): Promise<request.Options> {
+  buildBasic(req: IncomingMessage): Promise<axios.AxiosRequestConfig> {
     let api: string;
     let hostname: string;
     return this.domainPromise
@@ -152,7 +152,9 @@ export default class Transport {
       })
       .then(context => (this.prepareHeaders(req.headers, context.id, hostname)))
       .then((headers) => {
-        const jar = request.jar();
+        axiosCookieJarSupport(axios);
+        const cookieJar = new tough.CookieJar();
+        const jar = cookieJar;
 
         return {
           jar,
