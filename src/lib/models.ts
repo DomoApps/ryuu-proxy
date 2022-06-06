@@ -6,8 +6,9 @@ export interface DomoClient {
   sid: string;
   getAuthHeader(): any;
   createUUID(): string;
-  processRequest(options: AxiosRequestConfig): Promise<any>;
-  processRequestRaw(options: AxiosRequestConfig): Promise<any>;
+  processRequest(options: any): Promise<any>;
+  processRequestRaw(options: any): Promise<any>;
+  getDomoappsURL(params: any): Promise<any>;
 }
 
 export interface ProxyOptions {

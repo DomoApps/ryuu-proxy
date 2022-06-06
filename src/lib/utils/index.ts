@@ -18,6 +18,7 @@ export function getMostRecentLogin() {
   const loginData = fs.readJsonSync(recent);
   const configstore = new Configstore(`/ryuu/${loginData.instance}`);
   loginData.refreshToken = configstore.get('refreshToken');
+  loginData.devToken = configstore.get('devToken');
   return Promise.resolve(loginData);
 }
 
