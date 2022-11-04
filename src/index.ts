@@ -1,6 +1,5 @@
 import * as Promise from "core-js/features/promise";
 import * as path from "path";
-import * as Busboy from "busboy";
 import * as os from "os";
 import * as FormData from "form-data";
 import { createWriteStream, createReadStream } from "fs";
@@ -11,6 +10,7 @@ import * as dotenv from "dotenv";
 
 import Transport from "./lib/Transport";
 import { ProxyOptions } from "./lib/models";
+const busboy = require("busboy");
 
 export class Proxy {
   private transport: Transport;
@@ -73,15 +73,15 @@ export class Proxy {
     (req: Request, res: Response, next: NextFunction): Promise => {
       if (this.transport.isDomoRequest(req.url)) {
         if (this.transport.isMultiPartRequest(req.headers)) {
-          const busboy = new Busboy({ headers: req.headers });
+          const bb = busboy({ headers: req.headers });
           let filePath: string;
           let fieldName: string;
-          busboy.on("file", (fieldname, file, filename) => {
+          bb.on("file", (fieldname, file, filename) => {
             filePath = path.join(os.tmpdir(), path.basename(filename));
             fieldName = fieldname;
             file.pipe(createWriteStream(filePath));
           });
-          busboy.on("finish", () => {
+          bb.on("finish", () => {
             this.transport
               .buildBasic(req)
               .then((options) => {
@@ -98,7 +98,7 @@ export class Proxy {
               .catch((err) => this.onError(err, res));
           });
 
-          return req.pipe(busboy);
+          return req.pipe(bb);
         }
 
         return this.transport
