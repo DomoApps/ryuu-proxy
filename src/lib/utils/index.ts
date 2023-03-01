@@ -1,7 +1,6 @@
 import Domo = require("ryuu-client");
 import * as glob from "glob";
 import * as fs from "fs-extra";
-import * as Promise from "core-js/features/promise";
 import Configstore = require("configstore");
 
 import { OAUTH_ENABLED } from "../constants";

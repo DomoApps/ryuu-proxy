@@ -1,4 +1,3 @@
-import * as Promise from "core-js/features/promise";
 import * as path from "path";
 import * as os from "os";
 import * as FormData from "form-data";
@@ -68,55 +67,53 @@ export class Proxy {
     res.status(status).send(msg);
   };
 
-  express =
-    () =>
-    (req: Request, res: Response, next: NextFunction): Promise => {
-      if (this.transport.isDomoRequest(req.url)) {
-        if (this.transport.isMultiPartRequest(req.headers)) {
-          const bb = busboy({ headers: req.headers });
-          let filePath: string;
-          let fieldName: string;
-          bb.on("file", (fieldname, file, filename) => {
-            filePath = path.join(os.tmpdir(), path.basename(filename));
-            fieldName = fieldname;
-            file.pipe(createWriteStream(filePath));
-          });
-          bb.on("finish", () => {
-            this.transport
-              .buildBasic(req)
-              .then((options) => {
-                const form = new FormData();
-                form.append(fieldName, createReadStream(filePath));
+  express = () => (req: Request, res: Response, next: NextFunction) => {
+    if (this.transport.isDomoRequest(req.url)) {
+      if (this.transport.isMultiPartRequest(req.headers)) {
+        const bb = busboy({ headers: req.headers });
+        let filePath: string;
+        let fieldName: string;
+        bb.on("file", (fieldname, file, filename) => {
+          filePath = path.join(os.tmpdir(), path.basename(filename));
+          fieldName = fieldname;
+          file.pipe(createWriteStream(filePath));
+        });
+        bb.on("finish", () => {
+          this.transport
+            .buildBasic(req)
+            .then((options) => {
+              const form = new FormData();
+              form.append(fieldName, createReadStream(filePath));
 
-                return this.transport.request({
-                  ...options,
-                  headers: { ...options.headers, ...form.getHeaders() },
-                  data: form,
-                });
-              })
-              .then((rawRequest) => rawRequest.data.pipe(res))
-              .catch((err) => this.onError(err, res));
-          });
+              return this.transport.request({
+                ...options,
+                headers: { ...options.headers, ...form.getHeaders() },
+                data: form,
+              });
+            })
+            .then((rawRequest) => rawRequest.data.pipe(res))
+            .catch((err) => this.onError(err, res));
+        });
 
-          return req.pipe(bb);
-        }
-
-        return this.transport
-          .build(req)
-          .then((options) => {
-            return this.transport.request({
-              ...options,
-              httpsAgent: this.agent,
-            });
-          })
-          .then((rawRequest) => rawRequest.data.pipe(res))
-          .catch((err) => this.onError(err, res));
+        return req.pipe(bb);
       }
 
-      return next();
-    };
+      return this.transport
+        .build(req)
+        .then((options) => {
+          return this.transport.request({
+            ...options,
+            httpsAgent: this.agent,
+          });
+        })
+        .then((rawRequest) => rawRequest.data.pipe(res))
+        .catch((err) => this.onError(err, res));
+    }
 
-  stream = (req: IncomingMessage): Promise => {
+    return next();
+  };
+
+  stream = (req: IncomingMessage) => {
     if (this.transport.isDomoRequest(req.url)) {
       return this.transport.build(req).then(this.transport.request);
     }

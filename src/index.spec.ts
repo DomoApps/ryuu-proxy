@@ -1,25 +1,27 @@
-import * as Promise from 'core-js/features/promise';
-import * as sinon from 'sinon';
-import * as Domo from 'ryuu-client';
-import { expect } from 'chai';
-import { Proxy } from '.';
-import { Manifest } from './lib/models';
-import Transport from './lib/Transport';
+import * as sinon from "sinon";
+import * as Domo from "ryuu-client";
+import { expect } from "chai";
+import { Proxy } from ".";
+import { Manifest } from "./lib/models";
+import Transport from "./lib/Transport";
 
-describe('Proxy', () => {
+describe("Proxy", () => {
   let client: Proxy;
   let clientStub;
 
   const manifest: Manifest = {
-    id: 'test-id',
-    name: 'test-app',
-    version: '1.0.0',
+    id: "test-id",
+    name: "test-app",
+    version: "1.0.0",
     sizing: { width: 1, height: 1 },
   };
 
   beforeEach(() => {
-    clientStub = sinon.stub(Transport.prototype, 'getLastLogin')
-      .returns(Promise.resolve(new Domo('test.dev.domo.com', 'test-sid', 'test-token')));
+    clientStub = sinon
+      .stub(Transport.prototype, "getLastLogin")
+      .returns(
+        Promise.resolve(new Domo("test.dev.domo.com", "test-sid", "test-token"))
+      );
 
     client = new Proxy({ manifest });
   });
@@ -28,7 +30,7 @@ describe('Proxy', () => {
     clientStub.restore();
   });
 
-  it('should instantiate', () => {
+  it("should instantiate", () => {
     expect(Proxy).to.exist;
     expect(Proxy).to.be.an.instanceof(Function);
 
@@ -36,13 +38,13 @@ describe('Proxy', () => {
     expect(client).to.be.an.instanceof(Proxy);
   });
 
-  describe('express()', () => {
-    it('should instantiate', () => {
+  describe("express()", () => {
+    it("should instantiate", () => {
       expect(client.express).to.exist;
       expect(client.express).to.be.an.instanceOf(Function);
     });
 
-    it('should return express middleware', () => {
+    it("should return express middleware", () => {
       const func = client.express();
       expect(func).to.exist;
       expect(func).to.be.an.instanceof(Function);
@@ -50,8 +52,8 @@ describe('Proxy', () => {
     });
   });
 
-  describe('stream()', () => {
-    it('should instantiate', () => {
+  describe("stream()", () => {
+    it("should instantiate", () => {
       expect(client.stream).to.exist;
       expect(client.stream).to.be.an.instanceOf(Function);
     });

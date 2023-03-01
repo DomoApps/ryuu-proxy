@@ -24,6 +24,7 @@ export default class Transport {
 
   constructor({ manifest }: ProxyOptions) {
     this.manifest = manifest;
+    //@ts-ignore
     this.clientPromise = this.getLastLogin();
     this.proxyId = getProxyId(manifest);
     this.domainPromise = this.clientPromise.then(async (client) => {
@@ -74,7 +75,7 @@ export default class Transport {
     return this.domainPromise;
   }
 
-  getLastLogin(): Promise<DomoClient> {
+  getLastLogin(): Promise<Domo> {
     return getMostRecentLogin()
       .then(this.verifyLogin)
       .then((recentLogin) => {
