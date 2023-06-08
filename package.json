@@ -8,13 +8,15 @@
     "lint": "tslint src/**/*.ts --project ./tsconfig.json",
     "test": "mocha && rm -rf test",
     "tdd": "mocha --watch",
-    "prebuild": "npm run lint",
     "build": "rm -rf ./dist && tsc",
     "releaseAlpha": "npm run build && npm publish --tag alpha",
     "releaseBeta": "npm run build && npm publish --tag beta",
     "release": "npm run build && npm publish",
     "start": "npm run build -- -w",
-    "clean": "rm -rf node_modules && yarn"
+    "clean": "rm -rf node_modules && yarn",
+    "bumpAlpha": "npm run build && npm run bump -- --prerelease alpha",
+    "bumpBeta": "npm run build && npm run bump -- --prerelease beta",
+    "bump": "standard-version"
   },
   "author": "AppTeam6 <Squad.AppTeam6@domo.com>",
   "repository": {
@@ -44,16 +46,14 @@
     "sinon": "^14.0.0",
     "standard-version": "^9.5.0",
     "ts-node": "^10.9.1",
-    "tslint": "^6.1.3",
     "tslint-config-airbnb": "^5.11.2",
-    "tslint-loader": "^3.5.4",
     "tsutils": "^3.21.0",
     "typescript": "^4.7.4"
   },
   "dependencies": {
     "axios": "^0.27.2",
     "axios-cookiejar-support": "^1.0.1",
-    "busboy": "^0.3.1",
+    "busboy": "^1.6.0",
     "configstore": "^5.0.1",
     "dotenv": "^16.0.1",
     "form-data": "^4.0.0",
