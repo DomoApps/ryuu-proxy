@@ -1,7 +1,7 @@
 # ryuu-proxy
 
 [![npm version](https://img.shields.io/npm/v/@domoinc/ryuu-proxy.svg?style=flat-square)](https://www.npmjs.org/package/@domoinc/ryuu-proxy)
-[![install size](https://img.shields.io/badge/dynamic/json?url=https://packagephobia.com/v2/api.json?p=@domoinc/ryuu-proxy&query=$.install.pretty&label=install%20size&style=flat-square)](https://packagephobia.com/result?p=@domoinc/ryuu)
+[![install size](https://img.shields.io/badge/dynamic/json?url=https://packagephobia.com/v2/api.json?p=@domoinc/ryuu-proxy&query=$.install.pretty&label=install%20size&style=flat-square)](https://packagephobia.com/result?p=@domoinc/ryuu-proxy)
 [![npm downloads](https://img.shields.io/npm/dm/@domoinc/ryuu-proxy.svg?style=flat-square)](https://npm-stat.com/charts.html?package=@domoinc/ryuu)
 [![Known Vulnerabilities](https://snyk.io/test/npm/@domoinc/ryuu-proxy/badge.svg)](https://snyk.io/test/npm/@domoinc/ryuu-proxy)
 
@@ -167,7 +167,7 @@ All necessary files will be built/copied into the `dist` folder.
 
 ## Contributing
 
-Recommended Workflow:
+### Recommended Workflow:
 
 1. Create new branch (named "DOMO-XXXXXX")
 2. Make Changes
@@ -176,7 +176,7 @@ Recommended Workflow:
 5. Make pull request
 6. After pull request is merged to master, bump version, then release it to npm
 
-## Versioning
+### Versioning
 
 This project utilizes [standard-version](https://github.com/conventional-changelog/standard-version).
 
