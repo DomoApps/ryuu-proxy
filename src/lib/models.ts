@@ -1,4 +1,4 @@
-import { Options, Request } from 'request';
+import { AxiosRequestConfig } from 'axios';
 export interface DomoClient {
   instance: string;
   server: string;
@@ -6,8 +6,9 @@ export interface DomoClient {
   sid: string;
   getAuthHeader(): any;
   createUUID(): string;
-  processRequest(options: Options): Promise<any>;
-  processRequestRaw(options: Options): Promise<Request>;
+  processRequest(options: any): Promise<any>;
+  processRequestRaw(options: any): Promise<any>;
+  getDomoappsURL(params: any): Promise<any>;
 }
 
 export interface ProxyOptions {

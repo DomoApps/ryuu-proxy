@@ -1,5 +1,10 @@
 # ryuu-proxy
 
+[![npm version](https://img.shields.io/npm/v/@domoinc/ryuu-proxy.svg?style=flat-square)](https://www.npmjs.org/package/@domoinc/ryuu-proxy)
+[![install size](https://img.shields.io/badge/dynamic/json?url=https://packagephobia.com/v2/api.json?p=@domoinc/ryuu-proxy&query=$.install.pretty&label=install%20size&style=flat-square)](https://packagephobia.com/result?p=@domoinc/ryuu-proxy)
+[![npm downloads](https://img.shields.io/npm/dm/@domoinc/ryuu-proxy.svg?style=flat-square)](https://npm-stat.com/charts.html?package=@domoinc/ryuu)
+[![Known Vulnerabilities](https://snyk.io/test/npm/@domoinc/ryuu-proxy/badge.svg)](https://snyk.io/test/npm/@domoinc/ryuu-proxy)
+
 Simple middleware to add to a local development server while developing Domo Apps. The middleware will intercept any calls to `/data/v{d}`, `/sql/v{d}`, `/dql/v{d}` or `/domo/.../v{d}`, proxy an authenticated request to the Domo App service, and pipe the response back so that you can develop your Domo App locally and still get request data from Domo.
 
 ## Installation
@@ -17,9 +22,10 @@ $ domo login
 ```
 
 ### Configuration
+
 ```js
-const { Proxy } = require('@domoinc/ryuu-proxy');
-const manifest = require('./path/to/app/manifest.json');
+const { Proxy } = require("@domoinc/ryuu-proxy");
+const manifest = require("./path/to/app/manifest.json");
 
 const config = { manifest };
 
@@ -28,15 +34,18 @@ const proxy = new Proxy(config);
 ```
 
 The proxy constructor expects a `config` object. Certain properties are required and others are optional.
+
 #### Required Configuration Properties
+
 - `manifest`: The parsed contents of a project's manifest.json file. `domo publish` have been run at least once to ensure the `manifest.json` file has an `id` property
 
 #### Optional Configuration Properties
+
 - `manifest.proxyId`: An advanced property required for projects leveraging DQL, writebacks, or Oauth. If you are unsure of whether or not you need this, you most likely don't. To get a proxyId, see "Getting a proxyId" below
 
 ### With [Express](https://expressjs.com/) / [Connect](https://github.com/senchalabs/connect)
 
-This library comes with a simple wrapper for Express/Connect middleware. 
+This library comes with a simple wrapper for Express/Connect middleware.
 
 ```js
 const app = express();
@@ -52,7 +61,7 @@ For other frameworks, the library exposes the necessary functions to create a st
 app.use(async (ctx, next) => {
   await proxy
     .stream(ctx.req)
-    .then(data => ctx.body = ctx.req.pipe(data))
+    .then((data) => (ctx.body = ctx.req.pipe(data)))
     .catch(next);
 });
 ```
@@ -62,7 +71,7 @@ app.use(async (ctx, next) => {
 app.use((req, res, next) => {
   proxy
     .stream(req)
-    .then(stream => stream.pipe(res))
+    .then((stream) => stream.pipe(res))
     .catch(() => next());
 });
 ```
@@ -70,12 +79,10 @@ app.use((req, res, next) => {
 ```js
 // node http
 const server = http.createServer((req, res) => {
-  if (req.url === '/') {
+  if (req.url === "/") {
     loadHomePage(res);
   } else {
-    proxy
-      .stream(req)
-      .then(stream => stream.pipe(res));
+    proxy.stream(req).then((stream) => stream.pipe(res));
   }
 });
 ```
@@ -89,9 +96,9 @@ Ignoring the errors will cause the proxy to fail silently and the proxy request 
 app.use(async (ctx, next) => {
   await proxy
     .stream(ctx.req)
-    .then(data => ctx.body = ctx.req.pipe(data))
+    .then((data) => (ctx.body = ctx.req.pipe(data)))
     .catch((err) => {
-      if (err.name === 'DomoException') {
+      if (err.name === "DomoException") {
         ctx.status = err.status || err.statusCode || 500;
         ctx.body = err;
       } else {
@@ -106,9 +113,9 @@ app.use(async (ctx, next) => {
 app.use((req, res, next) => {
   proxy
     .stream(req)
-    .then(stream => stream.pipe(res))
-    .catch(err => {
-      if (err.name === 'DomoException') {
+    .then((stream) => stream.pipe(res))
+    .catch((err) => {
+      if (err.name === "DomoException") {
         res.status(err.status || err.statusCode || 500).json(err);
       } else {
         next();
@@ -120,14 +127,14 @@ app.use((req, res, next) => {
 ```js
 // http
 const server = http.createServer((req, res) => {
-  if (req.url === '/') {
+  if (req.url === "/") {
     loadHomePage();
   } else {
     proxy
       .stream(req)
-      .then(stream => stream.pipe(res))
-      .catch(err => {
-        if (err.name === 'DomoException') {
+      .then((stream) => stream.pipe(res))
+      .catch((err) => {
+        if (err.name === "DomoException") {
           res.writeHead(err.status || err.statusCode || 500);
           res.end(JSON.stringify(err));
         }
@@ -137,7 +144,9 @@ const server = http.createServer((req, res) => {
 ```
 
 ## Getting a proxyId (Advanced)
+
 Apps using DQL, writeback, or oAuth features are required to supply an proxyId as part of the proxy configuration. This allows the proxy to know how to properly route requests. The proxyId can be found as part of the URL for the iframe in which your app is displayed. It will be of the form `XXXXXXXX-XXXX-4XXX-XXXX-XXXXXXXXXXXX`. To find the ID:
+
 1. Make sure the app has been published at least once with `domo publish`
 2. Publish a new card based on your app design, or navigate to an existing card made from your app design
 3. Right-click anywhere in the card and choose "Inspect element"
@@ -145,3 +154,39 @@ Apps using DQL, writeback, or oAuth features are required to supply an proxyId a
 5. Copy the ID found between `//` and `.domoapps`. That is your app's `proxyId`
 
 `proxyId`s tie apps to cards. If you delete the card from which you retrieved the proxyId, you will have to get a new one from another card created from your app design.
+
+## Building
+
+To build ryuu-proxy, run
+
+```bash
+npm run build
+```
+
+All necessary files will be built/copied into the `dist` folder.
+
+## Contributing
+
+### Recommended Workflow:
+
+1. Create new branch (named "DOMO-XXXXXX")
+2. Make Changes
+3. Commit Changes
+4. Test changes (if necessary, version a alpha/beta/tagged version, then release it)
+5. Make pull request
+6. After pull request is merged to master, bump version, then release it to npm
+
+### Versioning
+
+This project utilizes [standard-version](https://github.com/conventional-changelog/standard-version).
+
+- `npm run bump` - Version bumps determined automatically via commits
+- `npm run bumpBeta` or `npm run bump -- --prerelease beta` - 4.0.x-beta.0 (if no current beta) or 4.0.0-beta.x (if current beta exists)
+
+### Releasing
+
+Versions should be released on npm
+
+- `npm run release`
+- `npm run releaseAlpha`
+- `npm run releaseBeta`

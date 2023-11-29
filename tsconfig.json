@@ -12,12 +12,9 @@
     "rootDir": "src",
     "noImplicitAny": false,
     "declaration": true,
-    "lib": ["es2015.iterable", "es5", "es2017"],
-    "outDir": "dist"
+    "lib": ["es2015.iterable", "es5", "es2017", "dom"],
+    "outDir": "dist",
+    "allowSyntheticDefaultImports": true
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.spec.ts"
-  ]
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
 }

@@ -1,6 +1,6 @@
 {
   "name": "@domoinc/ryuu-proxy",
-  "version": "4.0.5",
+  "version": "4.3.4",
   "description": "a middleware that provides a proxy for local domo app development",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -8,11 +8,15 @@
     "lint": "tslint src/**/*.ts --project ./tsconfig.json",
     "test": "mocha && rm -rf test",
     "tdd": "mocha --watch",
-    "prebuild": "npm run lint",
     "build": "rm -rf ./dist && tsc",
+    "releaseAlpha": "npm run build && npm publish --tag alpha",
+    "releaseBeta": "npm run build && npm publish --tag beta",
+    "release": "npm run build && npm publish",
     "start": "npm run build -- -w",
-    "prepublishOnly": "npm run test && npm run build",
-    "clean": "rm -rf node_modules && yarn"
+    "clean": "rm -rf node_modules && yarn",
+    "bumpAlpha": "npm run build && npm run bump -- --prerelease alpha",
+    "bumpBeta": "npm run build && npm run bump -- --prerelease beta",
+    "bump": "standard-version"
   },
   "author": "AppTeam6 <Squad.AppTeam6@domo.com>",
   "repository": {
@@ -28,37 +32,38 @@
     "domo apps"
   ],
   "devDependencies": {
-    "@types/busboy": "^0.2.3",
-    "@types/chai": "^4.0.6",
-    "@types/configstore": "^4.0.0",
-    "@types/express": "^4.0.36",
-    "@types/mocha": "^8.0.1",
-    "@types/node": "^14.0.27",
-    "@types/request": "^2.48.5",
-    "@types/sinon": "^9.0.4",
-    "chai": "^4.2.0",
-    "cross-env": "^7.0.2",
-    "json-loader": "^0.5.7",
-    "mocha": "^8.1.1",
+    "@types/busboy": "^1.5.0",
+    "@types/chai": "^4.3.1",
+    "@types/configstore": "^5.0.1",
+    "@types/express": "^4.17.13",
+    "@types/mocha": "^9.1.1",
+    "@types/node": "^18.0.6",
+    "@types/sinon": "^10.0.12",
+    "@types/tough-cookie": "^4.0.2",
+    "chai": "^4.3.6",
+    "mocha": "^10.0.0",
     "mock-req": "^0.2.0",
-    "sinon": "^9.0.2",
-    "ts-node": "^8.10.2",
-    "tslint": "^6.1.3",
+    "sinon": "^14.0.0",
+    "standard-version": "^9.5.0",
+    "ts-node": "^10.9.1",
     "tslint-config-airbnb": "^5.11.2",
-    "tslint-loader": "^3.5.4",
-    "tsutils": "^3.17.1",
-    "typescript": "^3.9.7"
+    "tsutils": "^3.21.0",
+    "typescript": "^4.7.4"
   },
   "dependencies": {
-    "busboy": "^0.3.1",
+    "axios": "^0.27.2",
+    "axios-cookiejar-support": "^1.0.1",
+    "busboy": "^1.6.0",
     "configstore": "^5.0.1",
-    "core-js": "^3.6.5",
-    "fs-extra": "^9.0.1",
-    "glob": "^7.1.6",
-    "request": "^2.88.2",
-    "ryuu-client": "^4.0.5"
+    "dotenv": "^16.0.1",
+    "form-data": "^4.0.0",
+    "fs-extra": "^10.1.0",
+    "glob": "^8.0.3",
+    "https-proxy-agent": "^5.0.1",
+    "ryuu-client": "4.3.2",
+    "tough-cookie": "^4.0.0"
   },
   "peerDependencies": {
-    "ryuu": "^3.4.3"
+    "ryuu": "^4.2.5"
   }
 }
