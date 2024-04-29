@@ -73,10 +73,13 @@ export class Proxy {
         const bb = busboy({ headers: req.headers });
         let filePath: string;
         let fieldName: string;
-        bb.on("file", (fieldname, file, filename) => {
-          filePath = path.join(os.tmpdir(), path.basename(filename));
+        bb.on("file", (fieldname, filestream, fileMetadata) => {
+          filePath = path.join(
+            os.tmpdir(),
+            path.basename(fileMetadata.filename)
+          );
           fieldName = fieldname;
-          file.pipe(createWriteStream(filePath));
+          filestream.pipe(createWriteStream(filePath));
         });
         bb.on("finish", () => {
           this.transport
