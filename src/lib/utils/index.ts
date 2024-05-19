@@ -4,7 +4,8 @@ import * as fs from "fs-extra";
 import Configstore = require("configstore");
 
 import { OAUTH_ENABLED } from "../constants";
-import { OauthToken, Manifest } from "../models";
+import { OauthToken } from "../models";
+import { Manifest } from "ryuu-client/lib/models";
 
 export function getMostRecentLogin() {
   const home = Domo.getHomeDir();
@@ -24,10 +25,8 @@ export function getMostRecentLogin() {
 export const isOauthEnabled = (manifest: Manifest): boolean =>
   Object.keys(manifest).includes(OAUTH_ENABLED) && manifest[OAUTH_ENABLED];
 
-export const getProxyId = (manifest: Manifest): string =>
-  manifest.proxyId !== undefined && typeof manifest.proxyId === "string"
-    ? manifest.proxyId
-    : Domo.createUUID();
+export const getProxyId = (manifest: Manifest) =>
+  manifest.proxyId ?? Domo.createUUID();
 
 export function getOauthTokens(
   proxyId: string,

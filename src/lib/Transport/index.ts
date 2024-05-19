@@ -11,13 +11,14 @@ import {
   isOauthEnabled,
   getOauthTokens,
 } from "../utils";
-import { Manifest, DomoClient, ProxyOptions, OauthToken } from "../models";
+import { ProxyOptions, OauthToken } from "../models";
 import { CLIENT_ID } from "../constants";
 import * as dotenv from "dotenv";
+import { Manifest } from "ryuu-client/lib/models";
 
 export default class Transport {
   private manifest: Manifest;
-  private clientPromise: Promise<DomoClient>;
+  private clientPromise: Promise<Domo>;
   private domainPromise: Promise<any>;
   private proxyId;
   private oauthTokenPromise: Promise<OauthToken | undefined>;
@@ -28,12 +29,12 @@ export default class Transport {
     this.clientPromise = this.getLastLogin();
     this.proxyId = getProxyId(manifest);
     this.domainPromise = this.clientPromise.then(async (client) => {
-      return client.getDomoappsURL({ ...this.manifest, proxyId: this.proxyId });
+      return client.getDomoappsData({ ...this.manifest }, this.proxyId);
     });
     this.oauthTokenPromise = this.getScopedOauthTokens();
   }
 
-  request = (options: axios.AxiosRequestConfig) =>
+  request = (options: axios.AxiosRequestConfig): any =>
     this.clientPromise.then((client) => client.processRequestRaw(options));
 
   getEnv(instance: string): string {
