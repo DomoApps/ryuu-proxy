@@ -1,6 +1,6 @@
 {
   "name": "@domoinc/ryuu-proxy",
-  "version": "4.3.5-beta.2",
+  "version": "4.4.1",
   "description": "a middleware that provides a proxy for local domo app development",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -40,10 +40,10 @@
     "@types/node": "^18.0.6",
     "@types/sinon": "^10.0.12",
     "@types/tough-cookie": "^4.0.2",
-    "chai": "^4.3.6",
+    "chai": "^5.0.0",
     "mocha": "^10.0.0",
     "mock-req": "^0.2.0",
-    "sinon": "^14.0.0",
+    "sinon": "^15.0.0",
     "standard-version": "^9.5.0",
     "ts-node": "^10.9.1",
     "tslint-config-airbnb": "^5.11.2",
@@ -51,7 +51,7 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
-    "axios": "^0.27.2",
+    "axios": "^0.28.0",
     "axios-cookiejar-support": "^1.0.1",
     "busboy": "^1.6.0",
     "configstore": "^5.0.1",
@@ -61,9 +61,13 @@
     "glob": "^8.0.3",
     "https-proxy-agent": "^5.0.1",
     "ryuu-client": "^4.3.4-beta.4",
-    "tough-cookie": "^4.0.0"
+    "tough-cookie": "^5.0.0"
   },
   "peerDependencies": {
     "ryuu": "^4.2.5"
+  },
+  "resolutions": {
+    "semver": ">=6.3.1",
+    "braces": ">=3.0.3"
   }
 }
