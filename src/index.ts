@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as os from "os";
-import * as FormData from "form-data";
+import FormData from "form-data";
 import { createWriteStream, createReadStream } from "fs";
 import { Request, Response, NextFunction } from "express";
 import { IncomingMessage } from "http";

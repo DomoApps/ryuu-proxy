@@ -1,5 +1,5 @@
-import * as sinon from "sinon";
-import * as Domo from "ryuu-client";
+import sinon from "sinon";
+import Domo from "ryuu-client";
 import { expect } from "chai";
 import { Proxy } from ".";
 import { Manifest } from "./lib/models";
@@ -13,7 +13,11 @@ describe("Proxy", () => {
     id: "test-id",
     name: "test-app",
     version: "1.0.0",
-    sizing: { width: 1, height: 1 },
+    size: { width: 1, height: 1 },
+    draft: false,
+    publicAssetsEnabled: true,
+    flags: new Map(),
+    fullpage: true,
   };
 
   beforeEach(() => {
