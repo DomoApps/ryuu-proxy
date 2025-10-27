@@ -1,33 +1,46 @@
 import * as sinon from "sinon";
-import * as Domo from "ryuu-client";
 import { expect } from "chai";
 import { Proxy } from ".";
-import { Manifest } from "./lib/models";
 import Transport from "./lib/Transport";
+import { Manifest } from "./lib/models";
+
+const Domo = require("ryuu-client");
 
 describe("Proxy", () => {
   let client: Proxy;
   let clientStub;
+  let domainStub;
 
   const manifest: Manifest = {
     id: "test-id",
     name: "test-app",
     version: "1.0.0",
-    sizing: { width: 1, height: 1 },
+    size: { width: 1, height: 1 },
+    draft: false,
+    publicAssetsEnabled: false,
+    flags: new Map<string, boolean>(),
+    fullpage: false,
   };
 
   beforeEach(() => {
     clientStub = sinon
       .stub(Transport.prototype, "getLastLogin")
       .returns(
-        Promise.resolve(new Domo("test.dev.domo.com", "test-sid", "test-token"))
+        Promise.resolve(
+          new Domo("test.dev.domo.com", "test-token", "client-id")
+        )
       );
+
+    domainStub = sinon
+      .stub(Transport.prototype, "getDomainPromise")
+      .returns(Promise.resolve({ url: "https://test.domoapps.dev.domo.com" }));
 
     client = new Proxy({ manifest });
   });
 
   afterEach(() => {
     clientStub.restore();
+    domainStub.restore();
   });
 
   it("should instantiate", () => {
