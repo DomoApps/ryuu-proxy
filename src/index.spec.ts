@@ -8,8 +8,8 @@ const Domo = require("ryuu-client");
 
 describe("Proxy", () => {
   let client: Proxy;
-  let clientStub;
-  let domainStub;
+  let clientStub: sinon.SinonStub;
+  let domainStub: sinon.SinonStub;
 
   const manifest: Manifest = {
     id: "test-id",

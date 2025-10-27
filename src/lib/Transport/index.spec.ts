@@ -1,5 +1,5 @@
 import * as sinon from "sinon";
-import * as MockReq from "mock-req";
+import MockReq from "mock-req";
 import { IncomingMessage } from "http";
 import { expect } from "chai";
 
@@ -28,7 +28,7 @@ describe("Transport", () => {
     url: "https://88e99055-1520-440c-99a0-7b2a27469391.domoapps.test.domo.com",
   };
 
-  let getDomainPromiseStub;
+  let getDomainPromiseStub: sinon.SinonStub;
 
   beforeEach((done) => {
     getDomainPromiseStub = sinon
@@ -43,7 +43,7 @@ describe("Transport", () => {
   });
 
   describe("when creating a new instance", () => {
-    let getLastLoginStub;
+    let getLastLoginStub: sinon.SinonStub;
     let client: Transport;
 
     beforeEach((done) => {
