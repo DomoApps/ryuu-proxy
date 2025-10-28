@@ -2,30 +2,46 @@
   "root": true,
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "project": ["./tsconfig.json", "./tsconfig.test.json"],
+    "project": ["./tsconfig.json"],
     "ecmaVersion": 2020,
     "sourceType": "module"
   },
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "prettier"],
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "airbnb-base",
-    "airbnb-typescript/base"
+    "airbnb-typescript/base",
+    "prettier"
   ],
   "rules": {
+    "prettier/prettier": "error",
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-var-requires": "warn",
+    "@typescript-eslint/no-unused-expressions": [
+      "error",
+      { "allowShortCircuit": true, "allowTernary": true, "allowTaggedTemplates": true, "enforceForJSX": false }
+    ],
     "import/prefer-default-export": "off",
     "class-methods-use-this": "off",
     "no-console": "warn",
-    "max-len": ["error", { "code": 120 }],
     "no-param-reassign": ["error", { "props": false }],
-    "import/no-extraneous-dependencies": ["error", {
-      "devDependencies": ["**/*.spec.ts", "**/*.test.ts"],
-      "peerDependencies": true
-    }]
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        "devDependencies": ["**/*.spec.ts", "**/*.test.ts"],
+        "peerDependencies": true
+      }
+    ]
   },
-  "ignorePatterns": ["dist", "node_modules", "**/*.js", "**/*.spec.ts"]
+  "ignorePatterns": ["dist", "node_modules", "**/*.js", "**/*.spec.ts"],
+  "overrides": [
+    {
+      "files": ["**/*.spec.ts", "**/*.test.ts"],
+      "rules": {
+        "@typescript-eslint/no-unused-expressions": "off"
+      }
+    }
+  ]
 }
