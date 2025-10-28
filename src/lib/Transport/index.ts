@@ -22,6 +22,8 @@ export default class Transport {
 
   private oauthTokenPromise: Promise<OauthToken | undefined>;
 
+  private cookieJar: CookieJar;
+
   constructor({ manifest }: ProxyOptions) {
     this.manifest = manifest;
     this.clientPromise = this.getLastLogin();
@@ -30,6 +32,10 @@ export default class Transport {
       client.getDomoappsData({ ...this.manifest }, this.proxyId)
     );
     this.oauthTokenPromise = this.getScopedOauthTokens();
+
+    // Initialize cookie jar once and reuse it for all requests to persist auth cookies
+    wrapper(axios);
+    this.cookieJar = new CookieJar();
   }
 
   request = (options: any): Promise<any> => this.clientPromise.then((client) => client.processRequestRaw(options));
@@ -158,11 +164,8 @@ export default class Transport {
         return this.prepareHeaders(req.headers, this.proxyId, hostname);
       })
       .then((headers) => {
-        wrapper(axios);
-        const cookieJar = new CookieJar();
-
         return {
-          jar: cookieJar,
+          jar: this.cookieJar,
           headers,
           url: api,
           responseType: 'stream' as const,
