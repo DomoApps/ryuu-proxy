@@ -1,50 +1,58 @@
-import Domo = require("ryuu-client");
-import * as axios from "axios";
-import { Request } from "express";
-import { IncomingMessage, IncomingHttpHeaders } from "http";
-const axiosCookieJarSupport = require("axios-cookiejar-support").default;
-const tough = require("tough-cookie");
+import Domo = require('ryuu-client');
+import axios, { AxiosRequestConfig } from 'axios';
+import { Request } from 'express';
+import { IncomingMessage, IncomingHttpHeaders } from 'http';
+import { wrapper } from 'axios-cookiejar-support';
+import { CookieJar } from 'tough-cookie';
 
+import * as dotenv from 'dotenv';
+import { Manifest } from 'ryuu-client/lib/models';
 import {
   getMostRecentLogin,
   getProxyId,
   isOauthEnabled,
   getOauthTokens,
-} from "../utils";
-import { ProxyOptions, OauthToken } from "../models";
-import { CLIENT_ID } from "../constants";
-import * as dotenv from "dotenv";
-import { Manifest } from "ryuu-client/lib/models";
+} from '../utils';
+import { ProxyOptions, OauthToken } from '../models';
+import { CLIENT_ID } from '../constants';
 
 export default class Transport {
   private manifest: Manifest;
+
   private clientPromise: Promise<Domo>;
+
   private domainPromise: Promise<any>;
-  private proxyId;
+
+  private proxyId: string;
+
   private oauthTokenPromise: Promise<OauthToken | undefined>;
 
   constructor({ manifest }: ProxyOptions) {
     this.manifest = manifest;
-    //@ts-ignore
     this.clientPromise = this.getLastLogin();
     this.proxyId = getProxyId(manifest);
-    this.domainPromise = this.clientPromise.then(async (client) => {
-      return client.getDomoappsData({ ...this.manifest }, this.proxyId);
-    });
+    this.domainPromise = this.clientPromise.then(
+      async (client) => client.getDomoappsData({ ...this.manifest }, this.proxyId),
+    );
     this.oauthTokenPromise = this.getScopedOauthTokens();
   }
 
-  request = (options: axios.AxiosRequestConfig): any =>
-    this.clientPromise.then((client) => client.processRequestRaw(options));
+  request = (options: any): any => this.clientPromise.then((client) => client.processRequestRaw(options));
 
   getEnv(instance: string): string {
     const regexp = /([-_\w]+)\.(.*)/;
     const int = 2;
-
-    return instance.match(regexp)[int];
+    const match = instance.match(regexp);
+    if (!match) {
+      throw new Error(`Invalid instance format: ${instance}`);
+    }
+    return match[int];
   }
 
-  isDomoRequest(url: string): boolean {
+  isDomoRequest(url: string | undefined): boolean {
+    if (!url) {
+      return false;
+    }
     const domoPattern = /^\/domo\/.+\/v\d/;
     const dataPattern = /^\/data\/v\d\/.+/;
     const sqlQueryPattern = /^\/sql\/v\d\/.+/;
@@ -52,19 +60,19 @@ export default class Transport {
     const apiPattern = /^\/api\/.+/;
 
     return (
-      domoPattern.test(url) ||
-      dataPattern.test(url) ||
-      sqlQueryPattern.test(url) ||
-      dqlPattern.test(url) ||
-      apiPattern.test(url)
+      domoPattern.test(url)
+      || dataPattern.test(url)
+      || sqlQueryPattern.test(url)
+      || dqlPattern.test(url)
+      || apiPattern.test(url)
     );
   }
 
   isMultiPartRequest(headers: IncomingHttpHeaders): boolean {
     return Object.entries(headers).some(
-      ([header, value]) =>
-        header.toLowerCase() === "content-type" &&
-        value.toString().toLowerCase().includes("multipart")
+      ([header, value]) => header.toLowerCase() === 'content-type'
+        && value !== undefined
+        && value.toString().toLowerCase().includes('multipart'),
     );
   }
 
@@ -80,53 +88,44 @@ export default class Transport {
     return getMostRecentLogin()
       .then(this.verifyLogin)
       .then((recentLogin) => {
-        dotenv.config({ path: process.cwd() + "/.env" });
-        if (
-          (process.env.REACT_APP_PROXY_HOST ?? process.env.PROXY_HOST) !==
-            undefined &&
-          (process.env.REACT_APP_PROXY_PORT ?? process.env.PROXY_PORT) !==
-            undefined
-        ) {
-          if (
-            (process.env.REACT_APP_PROXY_USERNAME ??
-              process.env.PROXY_USERNAME) !== undefined &&
-            (process.env.REACT_APP_PROXY_PASSWORD ??
-              process.env.PROXY_PASSWORD) !== undefined
-          ) {
+        dotenv.config({ path: `${process.cwd()}/.env` });
+        const proxyHost = process.env.REACT_APP_PROXY_HOST ?? process.env.PROXY_HOST;
+        const proxyPort = process.env.REACT_APP_PROXY_PORT ?? process.env.PROXY_PORT;
+        const proxyUsername = process.env.REACT_APP_PROXY_USERNAME ?? process.env.PROXY_USERNAME;
+        const proxyPassword = process.env.REACT_APP_PROXY_PASSWORD ?? process.env.PROXY_PASSWORD;
+
+        if (proxyHost !== undefined && proxyPort !== undefined) {
+          if (proxyUsername !== undefined && proxyPassword !== undefined) {
             return new Domo(
               recentLogin.instance,
               recentLogin.refreshToken,
               CLIENT_ID,
               {
-                host: process.env.REACT_APP_PROXY_HOST,
-                port: process.env.REACT_APP_PROXY_PORT,
-                //@ts-ignore
-                username: process.env.REACT_APP_PROXY_USERNAME,
-                password: process.env.REACT_APP_PROXY_PASSWORD,
+                host: proxyHost,
+                port: proxyPort,
+                auth: `${proxyUsername}:${proxyPassword}`,
               },
-              recentLogin.devToken
-            );
-          } else {
-            return new Domo(
-              recentLogin.instance,
-              recentLogin.refreshToken,
-              CLIENT_ID,
-              {
-                host: process.env.REACT_APP_PROXY_HOST,
-                port: process.env.REACT_APP_PROXY_PORT,
-              },
-              recentLogin.devToken
-            );
+              recentLogin.devToken,
+            ) as any;
           }
+          return new Domo(
+            recentLogin.instance,
+            recentLogin.refreshToken,
+            CLIENT_ID,
+            {
+              host: proxyHost,
+              port: proxyPort,
+            },
+            recentLogin.devToken,
+          ) as any;
         }
-        //@ts-ignore
         return new Domo(
           recentLogin.instance,
           recentLogin.refreshToken,
           CLIENT_ID,
           {},
-          recentLogin.devToken
-        );
+          recentLogin.devToken,
+        ) as any;
       });
   }
 
@@ -135,46 +134,42 @@ export default class Transport {
       return getOauthTokens(this.proxyId, this.manifest.scopes);
     }
 
-    return new Promise((resolve) => resolve(undefined));
+    return Promise.resolve(undefined);
   }
 
-  build(req: IncomingMessage): Promise<axios.AxiosRequestConfig> {
-    let options;
+  build(req: IncomingMessage): Promise<AxiosRequestConfig> {
+    let options: AxiosRequestConfig;
     return this.buildBasic(req)
       .then((basicOptions) => {
         options = basicOptions;
         options.transformResponse = [];
-        options.responseType = "stream";
+        options.responseType = 'stream';
         return this.parseBody(req);
       })
-      .then((data) => {
-        return {
-          ...options,
-          data,
-        };
-      });
+      .then((data) => ({
+        ...options,
+        data,
+      }));
   }
 
-  buildBasic(req: IncomingMessage): Promise<axios.AxiosRequestConfig> {
+  buildBasic(req: IncomingMessage): Promise<AxiosRequestConfig> {
     let api: string;
     let hostname: string;
-    //@ts-ignore
     return this.domainPromise
       .then((domain) => {
-        api = `${domain.url}${req.url}`;
+        api = `${domain.url}${req.url ?? ''}`;
         hostname = domain.url;
         return this.prepareHeaders(req.headers, this.proxyId, hostname);
       })
       .then((headers) => {
-        axiosCookieJarSupport(axios);
-        const cookieJar = new tough.CookieJar();
-        const jar = cookieJar;
+        wrapper(axios);
+        const cookieJar = new CookieJar();
 
         return {
-          jar,
+          jar: cookieJar,
           headers,
           url: api,
-          responseType: "stream",
+          responseType: 'stream' as const,
           method: req.method,
         };
       });
@@ -182,31 +177,31 @@ export default class Transport {
 
   private prepareHeaders(
     headers: IncomingHttpHeaders,
-    context: string,
-    host: string
+    _context: string,
+    host: string,
   ): Promise<IncomingHttpHeaders> {
-    const hostname = host.replace("https://", "");
+    const hostname = host.replace('https://', '');
     return this.oauthTokenPromise.then((tokens: OauthToken | undefined) => {
-      if (!headers.hasOwnProperty("referer"))
-        headers.referer = "https://0.0.0.0:3000";
-      const referer =
-        headers.referer.indexOf("?") >= 0
-          ? `${headers.referer}`
-          : `${headers.referer}?userId=27&customer=dev&locale=en-US&platform=desktop`;
+      const refererValue = headers.referer ?? 'https://0.0.0.0:3000';
+      const referer = refererValue.indexOf('?') >= 0
+        ? `${refererValue}`
+        : `${refererValue}?userId=27&customer=dev&locale=en-US&platform=desktop`;
 
       const cookieHeader = this.prepareCookies(headers, tokens);
 
       const filters: string[] = this.isMultiPartRequest(headers)
-        ? ["content-type", "content-length", "cookie"]
-        : ["cookie"];
+        ? ['content-type', 'content-length', 'cookie']
+        : ['cookie'];
+
+      const filteredHeaders = Object.keys(headers).reduce((newHeaders: Record<string, any>, key) => {
+        if (!filters.includes(key.toLowerCase())) {
+          return { ...newHeaders, [key]: headers[key] };
+        }
+        return newHeaders;
+      }, {});
 
       return {
-        ...Object.keys(headers).reduce((newHeaders, key) => {
-          if (!filters.includes(key.toLowerCase())) {
-            newHeaders[key] = headers[key];
-          }
-          return newHeaders;
-        }, {}),
+        ...filteredHeaders,
         ...cookieHeader,
         referer,
         host: hostname,
@@ -216,69 +211,70 @@ export default class Transport {
 
   private prepareCookies(
     headers: IncomingHttpHeaders,
-    tokens: OauthToken | undefined
-  ): { cookie: string } | {} {
-    const existingCookie = Object.keys(headers).reduce((newHeaders, key) => {
-      if (key.toLowerCase() === "cookie") {
+    tokens: OauthToken | undefined,
+  ): { cookie?: string } {
+    const existingCookie = Object.keys(headers).reduce((newHeaders: Record<string, string>, key) => {
+      if (key.toLowerCase() === 'cookie') {
+        const cookieValue = headers[key];
         // handle if cookie is an array
-        if (Array.isArray(headers[key])) {
-          newHeaders["cookie"] = (headers[key] as string[]).join("; ");
-        } else {
-          newHeaders["cookie"] = headers[key] as string;
+        if (Array.isArray(cookieValue)) {
+          return { ...newHeaders, cookie: cookieValue.join('; ') };
+        }
+        if (cookieValue !== undefined) {
+          return { ...newHeaders, cookie: cookieValue as string };
         }
       }
       return newHeaders;
-    }, {});
+    }, {} as Record<string, string>);
 
-    const tokenCookie =
-      tokens !== undefined
-        ? { cookie: `_daatv1=${tokens.access}; _dartv1=${tokens.refresh}` }
-        : {};
+    const tokenCookie = tokens !== undefined
+      ? { cookie: `_daatv1=${tokens.access}; _dartv1=${tokens.refresh}` }
+      : {};
 
-    if (
-      existingCookie["cookie"] !== undefined &&
-      tokenCookie["cookie"] !== undefined
-    ) {
+    if (existingCookie.cookie !== undefined && tokenCookie.cookie !== undefined) {
       return {
-        cookie: `${existingCookie["cookie"]}; ${tokenCookie["cookie"]}`,
+        cookie: `${existingCookie.cookie}; ${tokenCookie.cookie}`,
       };
     }
 
-    if (existingCookie["cookie"] === undefined) {
+    if (existingCookie.cookie === undefined) {
       return tokenCookie;
     }
 
     return existingCookie;
   }
 
-  private parseBody(req: IncomingMessage): Promise<string | void> {
+  private parseBody(req: IncomingMessage): Promise<string | undefined> {
     // if body-parser was used before this middleware the "body" attribute will be set
     const exprReq = req as Request;
-    if (typeof exprReq.body !== "undefined") {
-      if (typeof exprReq.body === "string")
+    if (typeof exprReq.body !== 'undefined') {
+      if (typeof exprReq.body === 'string') {
         return Promise.resolve(exprReq.body);
+      }
       return Promise.resolve(JSON.stringify(exprReq.body));
     }
 
     return new Promise((resolve) => {
-      const body = [];
+      const body: Buffer[] = [];
 
       try {
-        req.on("data", (chunk) => body.push(chunk));
+        req.on('data', (chunk: Buffer) => body.push(chunk));
 
-        req.on("end", () => {
+        req.on('end', () => {
           const raw = Buffer.concat(body).toString();
           resolve(raw);
         });
 
-        req.on("error", () => resolve(null));
+        req.on('error', () => {
+          resolve(undefined);
+        });
       } catch (e) {
-        resolve();
+        resolve(undefined);
       }
     });
   }
 
-  private verifyLogin(login) {
+  private verifyLogin(login: any) {
     if (!login.refreshToken) {
       throw new Error('Not authenticated. Please login using "domo login"');
     }

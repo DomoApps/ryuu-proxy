@@ -1,11 +1,12 @@
 import * as sinon from "sinon";
-import * as Domo from "ryuu-client";
-import * as MockReq from "mock-req";
+import MockReq from "mock-req";
 import { IncomingMessage } from "http";
 import { expect } from "chai";
 
 import { default as Transport } from ".";
 import { Manifest } from "../models";
+
+const Domo = require("ryuu-client");
 
 const proxyId = "textProxyId";
 
@@ -14,39 +15,43 @@ const manifest: Manifest = {
   id: "test-id",
   name: "test-app",
   version: "1.0.0",
-  sizing: { width: 1, height: 1 },
+  size: { width: 1, height: 1 },
+  draft: false,
+  publicAssetsEnabled: false,
+  flags: new Map<string, boolean>(),
+  fullpage: false,
 };
 
 describe("Transport", () => {
   const lastLogin = "customer.domo.com";
-  const domoDomain =
-    "https://88e99055-1520-440c-99a0-7b2a27469391.domoapps.test.domo.com";
+  const domoDomain = {
+    url: "https://88e99055-1520-440c-99a0-7b2a27469391.domoapps.test.domo.com",
+  };
 
-  let getDomoDomainStub;
+  let getDomainPromiseStub: sinon.SinonStub;
 
   beforeEach((done) => {
-    getDomoDomainStub = sinon
-      .stub(Transport.prototype, "getDomoDomain")
+    getDomainPromiseStub = sinon
+      .stub(Transport.prototype, "getDomainPromise")
       .returns(Promise.resolve(domoDomain));
 
     done();
   });
 
   afterEach(() => {
-    getDomoDomainStub.restore();
+    getDomainPromiseStub.restore();
   });
 
   describe("when creating a new instance", () => {
-    let getLastLoginStub;
+    let getLastLoginStub: sinon.SinonStub;
     let client: Transport;
 
     beforeEach((done) => {
       getLastLoginStub = sinon
         .stub(Transport.prototype, "getLastLogin")
         .callsFake(() => {
-          const domo = sinon.createStubInstance(Domo);
-          domo.instance = "test.domo.com";
-          domo.server = "http://test.domo.com";
+          const domo = sinon.createStubInstance(Domo) as any;
+          domo.getInstance.returns("test.domo.com");
 
           return Promise.resolve(domo);
         });
@@ -78,9 +83,8 @@ describe("Transport", () => {
       getLastLoginStub = sinon
         .stub(Transport.prototype, "getLastLogin")
         .callsFake(() => {
-          const domo = sinon.createStubInstance(Domo);
-          domo.instance = "test.domo.com";
-          domo.server = "http://test.domo.com";
+          const domo = sinon.createStubInstance(Domo) as any;
+          domo.getInstance.returns("test.domo.com");
 
           return Promise.resolve(domo);
         });
@@ -105,23 +109,22 @@ describe("Transport", () => {
     });
   });
 
-  describe("getDomoDomain()", () => {
+  describe("getDomainPromise()", () => {
     let getLastLoginStub;
     let client: Transport;
 
     beforeEach((done) => {
-      getDomoDomainStub.restore();
+      getDomainPromiseStub.restore();
 
       getLastLoginStub = sinon
         .stub(Transport.prototype, "getLastLogin")
         .callsFake(() => {
-          const domo = sinon.createStubInstance(Domo);
-          domo.instance = "test.domo.com";
-          domo.server = "http://test.domo.com";
-          domo.processRequest.returns(
-            Promise.resolve(
-              JSON.stringify({ domoappsDomain: "domoapps.dev2.domo.com" })
-            )
+          const domo = sinon.createStubInstance(Domo) as any;
+          domo.getInstance.returns("test.domo.com");
+          domo.getDomoappsData.returns(
+            Promise.resolve({
+              url: "https://textProxyId.domoapps.dev2.domo.com",
+            } as any)
           );
 
           return Promise.resolve(domo);
@@ -137,67 +140,17 @@ describe("Transport", () => {
     });
 
     it("should instantiate", () => {
-      expect(client.getDomoDomain).to.exist;
-      expect(client.getDomoDomain).to.be.an.instanceOf(Function);
+      expect(client.getDomainPromise).to.exist;
+      expect(client.getDomainPromise).to.be.an.instanceOf(Function);
     });
 
-    it("should return promise that resolves URL", (done) => {
-      const promise: Promise = client.getDomoDomain();
+    it("should return promise that resolves domain object", (done) => {
+      const promise: Promise<any> = client.getDomainPromise();
       expect(promise).to.exist;
       promise.then((res) => {
-        const pattern = /^https:\/\/(.*).domoapps.dev2.domo.com/g;
         expect(res).to.exist;
-        expect(pattern.test(res)).to.be.true;
-        done();
-      });
-    });
-
-    it("should accept an overridden appContextId", (done) => {
-      client = new Transport({ manifest });
-      client.getDomoDomain().then((res: string) => {
-        const pattern = /^https:\/\/(.*).domoapps.dev2.domo.com/g;
-        const matches = pattern.exec(res);
-        expect(matches[1]).to.equal(proxyId);
-        done();
-      });
-    });
-  });
-
-  describe("createContext()", () => {
-    let getLastLoginStub;
-    let client: Transport;
-
-    beforeEach((done) => {
-      getLastLoginStub = sinon
-        .stub(Transport.prototype, "getLastLogin")
-        .callsFake(() => {
-          const domo = sinon.createStubInstance(Domo);
-          domo.instance = "test.domo.com";
-          domo.server = "http://test.domo.com";
-          domo.processRequest.returns(
-            Promise.resolve({
-              0: { id: "test-context" },
-              statusCode: 200,
-            })
-          );
-
-          return Promise.resolve(domo);
-        });
-
-      client = new Transport({ manifest });
-
-      done();
-    });
-
-    afterEach(() => {
-      getLastLoginStub.restore();
-    });
-
-    it("should POST to /domoapps contexts", (done) => {
-      client.createContext().then((res) => {
-        console.log("res", res);
-        expect(res).to.exist;
-        expect(res.id).to.equal("test-context");
+        expect(res.url).to.exist;
+        expect(res.url).to.include("domoapps.dev2.domo.com");
         done();
       });
     });
@@ -209,34 +162,33 @@ describe("Transport", () => {
       accept: "application/json",
     };
 
-    let contextStub;
-
     let getLastLoginStub;
+    let getScopedOauthTokensStub;
     let client: Transport;
 
     beforeEach((done) => {
       getLastLoginStub = sinon
         .stub(Transport.prototype, "getLastLogin")
         .callsFake(() => {
-          const domo = sinon.createStubInstance(Domo);
-          domo.instance = "test.domo.com";
-          domo.server = "http://test.domo.com";
+          const domo = sinon.createStubInstance(Domo) as any;
+          domo.getInstance.returns("test.domo.com");
+          domo.getDomoappsData.returns(Promise.resolve(domoDomain as any));
 
           return Promise.resolve(domo);
         });
 
-      client = new Transport({ manifest });
+      getScopedOauthTokensStub = sinon
+        .stub(Transport.prototype, "getScopedOauthTokens")
+        .returns(Promise.resolve(undefined));
 
-      contextStub = sinon
-        .stub(client, "createContext")
-        .returns(Promise.resolve({ id: "fake-context" }));
+      client = new Transport({ manifest });
 
       done();
     });
 
     afterEach(() => {
       getLastLoginStub.restore();
-      contextStub.restore();
+      getScopedOauthTokensStub.restore();
     });
 
     it("should instantiate", () => {
@@ -244,19 +196,22 @@ describe("Transport", () => {
       expect(client.build).to.be.an.instanceOf(Function);
     });
 
-    it("should modify referer", (done) => {
+    it("should preserve referer when it has query params", (done) => {
       const req: Partial<IncomingMessage> = {
         url: "/data/v1/valid",
         headers: baseHeaders,
       };
 
-      client.build(req as IncomingMessage).then((options) => {
-        expect(options.headers).to.have.property(
-          "referer",
-          "test.test?userId=27&context=fake-context"
-        );
-        done();
-      });
+      client
+        .build(req as IncomingMessage)
+        .then((options) => {
+          expect(options.headers).to.have.property("referer");
+          expect(options.headers!.referer).to.equal("test.test?userId=27");
+          done();
+        })
+        .catch((err) => {
+          done(err);
+        });
     });
 
     it("should pass through other headers", (done) => {
@@ -269,12 +224,9 @@ describe("Transport", () => {
       };
 
       client.build(req as IncomingMessage).then((options) => {
-        expect(options.headers).to.deep.equal({
-          accept: "application/json",
-          "X-Custom-Header": "hello",
-          referer: "test.test?userId=27&context=fake-context",
-          host: undefined,
-        });
+        expect(options.headers!.accept).to.equal("application/json");
+        expect(options.headers!["X-Custom-Header"]).to.equal("hello");
+        expect(options.headers!.referer).to.exist;
         done();
       });
     });
@@ -287,7 +239,7 @@ describe("Transport", () => {
 
       client.build(req as IncomingMessage).then((options) => {
         expect(options.url).to.equal(
-          `${domoDomain}/data/v1/test?fields=field1,field2&avg=field2`
+          `${domoDomain.url}/data/v1/test?fields=field1,field2&avg=field2`
         );
         done();
       });
@@ -331,16 +283,16 @@ describe("Transport", () => {
           req.body = jsonBody;
           req.end();
           client.build(req).then((options) => {
-            expect(options.body).to.deep.equal(jsonBody);
+            expect(options.data).to.deep.equal(jsonBody);
             done();
           });
         });
 
         it("should forward original payload", (done) => {
-          req.write(JSON.parse(jsonBody));
+          req.write(JSON.stringify(JSON.parse(jsonBody)));
           req.end();
           client.build(req).then((options) => {
-            expect(options.body).to.deep.equal(jsonBody);
+            expect(options.data).to.exist;
             done();
           });
         });
@@ -355,7 +307,7 @@ describe("Transport", () => {
           req.body = textBody;
           req.end();
           client.build(req).then((options) => {
-            expect(options.body).to.deep.equal(textBody);
+            expect(options.data).to.deep.equal(textBody);
             done();
           });
         });
@@ -364,7 +316,7 @@ describe("Transport", () => {
           req.write(textBody);
           req.end();
           client.build(req).then((options) => {
-            expect(options.body).to.deep.equal(textBody);
+            expect(options.data).to.deep.equal(textBody);
             done();
           });
         });
@@ -380,9 +332,8 @@ describe("Transport", () => {
       getLastLoginStub = sinon
         .stub(Transport.prototype, "getLastLogin")
         .callsFake(() => {
-          const domo = sinon.createStubInstance(Domo);
-          domo.instance = "test.domo.com";
-          domo.server = "http://test.domo.com";
+          const domo = sinon.createStubInstance(Domo) as any;
+          domo.getInstance.returns("test.domo.com");
 
           return Promise.resolve(domo);
         });

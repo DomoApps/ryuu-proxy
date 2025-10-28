@@ -1,0 +1,31 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": ["./tsconfig.json", "./tsconfig.test.json"],
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+  },
+  "plugins": ["@typescript-eslint"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "airbnb-base",
+    "airbnb-typescript/base"
+  ],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-var-requires": "warn",
+    "import/prefer-default-export": "off",
+    "class-methods-use-this": "off",
+    "no-console": "warn",
+    "max-len": ["error", { "code": 120 }],
+    "no-param-reassign": ["error", { "props": false }],
+    "import/no-extraneous-dependencies": ["error", {
+      "devDependencies": ["**/*.spec.ts", "**/*.test.ts"],
+      "peerDependencies": true
+    }]
+  },
+  "ignorePatterns": ["dist", "node_modules", "**/*.js", "**/*.spec.ts"]
+}
