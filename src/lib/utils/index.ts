@@ -20,16 +20,13 @@ export function getMostRecentLogin() {
   return Promise.resolve(loginData);
 }
 
-export const isOauthEnabled = (manifest: Manifest): boolean => (
-  Object.keys(manifest).includes(OAUTH_ENABLED) && (manifest as any)[OAUTH_ENABLED]
-);
+export const isOauthEnabled = (manifest: Manifest): boolean =>
+  Object.keys(manifest).includes(OAUTH_ENABLED) &&
+  (manifest as unknown as Record<string, unknown>)[OAUTH_ENABLED] === true;
 
 export const getProxyId = (manifest: Manifest): string => manifest.proxyId ?? Domo.createUUID();
 
-export function getOauthTokens(
-  proxyId: string,
-  scopes: string[] | undefined,
-): Promise<OauthToken> {
+export function getOauthTokens(proxyId: string, scopes: string[] | undefined): Promise<OauthToken> {
   return getMostRecentLogin()
     .then((loginData) => {
       const configstore = new Configstore(`/ryuu/${loginData.instance}`);

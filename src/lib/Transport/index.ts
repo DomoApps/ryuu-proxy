@@ -7,12 +7,7 @@ import { CookieJar } from 'tough-cookie';
 
 import * as dotenv from 'dotenv';
 import { Manifest } from 'ryuu-client/lib/models';
-import {
-  getMostRecentLogin,
-  getProxyId,
-  isOauthEnabled,
-  getOauthTokens,
-} from '../utils';
+import { getMostRecentLogin, getProxyId, isOauthEnabled, getOauthTokens } from '../utils';
 import { ProxyOptions, OauthToken } from '../models';
 import { CLIENT_ID } from '../constants';
 
@@ -21,23 +16,29 @@ export default class Transport {
 
   private clientPromise: Promise<Domo>;
 
-  private domainPromise: Promise<any>;
+  private domainPromise: Promise<{ url: string }>;
 
   private proxyId: string;
 
   private oauthTokenPromise: Promise<OauthToken | undefined>;
 
+  private cookieJar: CookieJar;
+
   constructor({ manifest }: ProxyOptions) {
     this.manifest = manifest;
     this.clientPromise = this.getLastLogin();
     this.proxyId = getProxyId(manifest);
-    this.domainPromise = this.clientPromise.then(
-      async (client) => client.getDomoappsData({ ...this.manifest }, this.proxyId),
+    this.domainPromise = this.clientPromise.then(async (client) =>
+      client.getDomoappsData({ ...this.manifest }, this.proxyId)
     );
     this.oauthTokenPromise = this.getScopedOauthTokens();
+
+    // Initialize cookie jar once and reuse it for all requests to persist auth cookies
+    wrapper(axios);
+    this.cookieJar = new CookieJar();
   }
 
-  request = (options: any): any => this.clientPromise.then((client) => client.processRequestRaw(options));
+  request = (options: any): Promise<any> => this.clientPromise.then((client) => client.processRequestRaw(options));
 
   getEnv(instance: string): string {
     const regexp = /([-_\w]+)\.(.*)/;
@@ -60,19 +61,20 @@ export default class Transport {
     const apiPattern = /^\/api\/.+/;
 
     return (
-      domoPattern.test(url)
-      || dataPattern.test(url)
-      || sqlQueryPattern.test(url)
-      || dqlPattern.test(url)
-      || apiPattern.test(url)
+      domoPattern.test(url) ||
+      dataPattern.test(url) ||
+      sqlQueryPattern.test(url) ||
+      dqlPattern.test(url) ||
+      apiPattern.test(url)
     );
   }
 
   isMultiPartRequest(headers: IncomingHttpHeaders): boolean {
     return Object.entries(headers).some(
-      ([header, value]) => header.toLowerCase() === 'content-type'
-        && value !== undefined
-        && value.toString().toLowerCase().includes('multipart'),
+      ([header, value]) =>
+        header.toLowerCase() === 'content-type' &&
+        value !== undefined &&
+        value.toString().toLowerCase().includes('multipart')
     );
   }
 
@@ -80,7 +82,7 @@ export default class Transport {
     return this.manifest;
   }
 
-  getDomainPromise(): Promise<any> {
+  getDomainPromise(): Promise<{ url: string }> {
     return this.domainPromise;
   }
 
@@ -97,35 +99,35 @@ export default class Transport {
         if (proxyHost !== undefined && proxyPort !== undefined) {
           if (proxyUsername !== undefined && proxyPassword !== undefined) {
             return new Domo(
-              recentLogin.instance,
-              recentLogin.refreshToken,
+              recentLogin.instance!,
+              recentLogin.refreshToken!,
               CLIENT_ID,
               {
                 host: proxyHost,
                 port: proxyPort,
                 auth: `${proxyUsername}:${proxyPassword}`,
               },
-              recentLogin.devToken,
-            ) as any;
+              recentLogin.devToken as boolean
+            );
           }
           return new Domo(
-            recentLogin.instance,
-            recentLogin.refreshToken,
+            recentLogin.instance!,
+            recentLogin.refreshToken!,
             CLIENT_ID,
             {
               host: proxyHost,
               port: proxyPort,
             },
-            recentLogin.devToken,
-          ) as any;
+            recentLogin.devToken as boolean
+          );
         }
         return new Domo(
-          recentLogin.instance,
-          recentLogin.refreshToken,
+          recentLogin.instance!,
+          recentLogin.refreshToken!,
           CLIENT_ID,
           {},
-          recentLogin.devToken,
-        ) as any;
+          recentLogin.devToken as boolean
+        );
       });
   }
 
@@ -162,11 +164,8 @@ export default class Transport {
         return this.prepareHeaders(req.headers, this.proxyId, hostname);
       })
       .then((headers) => {
-        wrapper(axios);
-        const cookieJar = new CookieJar();
-
         return {
-          jar: cookieJar,
+          jar: this.cookieJar,
           headers,
           url: api,
           responseType: 'stream' as const,
@@ -175,17 +174,14 @@ export default class Transport {
       });
   }
 
-  private prepareHeaders(
-    headers: IncomingHttpHeaders,
-    _context: string,
-    host: string,
-  ): Promise<IncomingHttpHeaders> {
+  private prepareHeaders(headers: IncomingHttpHeaders, _context: string, host: string): Promise<IncomingHttpHeaders> {
     const hostname = host.replace('https://', '');
     return this.oauthTokenPromise.then((tokens: OauthToken | undefined) => {
       const refererValue = headers.referer ?? 'https://0.0.0.0:3000';
-      const referer = refererValue.indexOf('?') >= 0
-        ? `${refererValue}`
-        : `${refererValue}?userId=27&customer=dev&locale=en-US&platform=desktop`;
+      const referer =
+        refererValue.indexOf('?') >= 0
+          ? `${refererValue}`
+          : `${refererValue}?userId=27&customer=dev&locale=en-US&platform=desktop`;
 
       const cookieHeader = this.prepareCookies(headers, tokens);
 
@@ -193,12 +189,15 @@ export default class Transport {
         ? ['content-type', 'content-length', 'cookie']
         : ['cookie'];
 
-      const filteredHeaders = Object.keys(headers).reduce((newHeaders: Record<string, any>, key) => {
-        if (!filters.includes(key.toLowerCase())) {
-          return { ...newHeaders, [key]: headers[key] };
-        }
-        return newHeaders;
-      }, {});
+      const filteredHeaders = Object.keys(headers).reduce(
+        (newHeaders: Record<string, string | string[] | undefined>, key) => {
+          if (!filters.includes(key.toLowerCase())) {
+            return { ...newHeaders, [key]: headers[key] };
+          }
+          return newHeaders;
+        },
+        {}
+      );
 
       return {
         ...filteredHeaders,
@@ -209,27 +208,25 @@ export default class Transport {
     });
   }
 
-  private prepareCookies(
-    headers: IncomingHttpHeaders,
-    tokens: OauthToken | undefined,
-  ): { cookie?: string } {
-    const existingCookie = Object.keys(headers).reduce((newHeaders: Record<string, string>, key) => {
-      if (key.toLowerCase() === 'cookie') {
-        const cookieValue = headers[key];
-        // handle if cookie is an array
-        if (Array.isArray(cookieValue)) {
-          return { ...newHeaders, cookie: cookieValue.join('; ') };
+  private prepareCookies(headers: IncomingHttpHeaders, tokens: OauthToken | undefined): { cookie?: string } {
+    const existingCookie = Object.keys(headers).reduce(
+      (newHeaders: Record<string, string>, key) => {
+        if (key.toLowerCase() === 'cookie') {
+          const cookieValue = headers[key];
+          // handle if cookie is an array
+          if (Array.isArray(cookieValue)) {
+            return { ...newHeaders, cookie: cookieValue.join('; ') };
+          }
+          if (cookieValue !== undefined) {
+            return { ...newHeaders, cookie: cookieValue as string };
+          }
         }
-        if (cookieValue !== undefined) {
-          return { ...newHeaders, cookie: cookieValue as string };
-        }
-      }
-      return newHeaders;
-    }, {} as Record<string, string>);
+        return newHeaders;
+      },
+      {} as Record<string, string>
+    );
 
-    const tokenCookie = tokens !== undefined
-      ? { cookie: `_daatv1=${tokens.access}; _dartv1=${tokens.refresh}` }
-      : {};
+    const tokenCookie = tokens !== undefined ? { cookie: `_daatv1=${tokens.access}; _dartv1=${tokens.refresh}` } : {};
 
     if (existingCookie.cookie !== undefined && tokenCookie.cookie !== undefined) {
       return {
@@ -274,7 +271,7 @@ export default class Transport {
     });
   }
 
-  private verifyLogin(login: any) {
+  private verifyLogin(login: { refreshToken?: string; instance?: string; devToken?: string | boolean }) {
     if (!login.refreshToken) {
       throw new Error('Not authenticated. Please login using "domo login"');
     }

@@ -8,24 +8,26 @@ ryuu-proxy is a middleware library for local Domo App development. It intercepts
 
 ## Development Commands
 
-**Build**: `npm run build` - Compiles TypeScript to `dist/` folder
-**Lint**: `npm run lint` - Runs tslint on TypeScript files
-**Test**: `npm test` - Runs mocha tests (note: creates and removes a `test/` directory)
-**Test Watch**: `npm run tdd` - Runs mocha in watch mode
-**Clean**: `npm run clean` - Removes node_modules and reinstalls with yarn
+**Build**: `pnpm run build` - Compiles TypeScript to `dist/` folder
+**Lint**: `pnpm run lint` - Runs tslint on TypeScript files
+**Test**: `pnpm test` - Runs mocha tests (note: creates and removes a `test/` directory)
+**Test Watch**: `pnpm run tdd` - Runs mocha in watch mode
+**Clean**: `pnpm run clean` - Removes node_modules and reinstalls with yarn
 
 ## Architecture
 
 ### Core Components
 
 **Proxy Class** (`src/index.ts`)
+
 - Main entry point and public API
 - Provides `express()` middleware wrapper for Express/Connect
 - Provides `stream()` method for other frameworks (Koa, Node http)
 - Handles multipart/form-data requests using busboy for file uploads
-- Supports HTTP proxy configuration via environment variables (PROXY_HOST, PROXY_PORT, PROXY_USERNAME, PROXY_PASSWORD or REACT_APP_* prefixed versions)
+- Supports HTTP proxy configuration via environment variables (PROXY*HOST, PROXY_PORT, PROXY_USERNAME, PROXY_PASSWORD or REACT_APP*\* prefixed versions)
 
 **Transport Class** (`src/lib/Transport/index.ts`)
+
 - Core proxy logic that handles authentication and request proxying
 - Manages Domo client instances via ryuu-client
 - Builds axios request configurations with proper headers, cookies, and OAuth tokens
@@ -34,6 +36,7 @@ ryuu-proxy is a middleware library for local Domo App development. It intercepts
 - Uses configstore to retrieve authentication data from Domo CLI login sessions
 
 **Utils** (`src/lib/utils/index.ts`)
+
 - `getMostRecentLogin()`: Retrieves last Domo CLI login from `~/ryuu/*.json` and associated configstore
 - `getOauthTokens()`: Fetches scoped OAuth tokens for apps using oAuth features
 - `getProxyId()`: Returns manifest proxyId or generates UUID (required for DQL, writeback, OAuth)
@@ -58,6 +61,7 @@ ryuu-proxy is a middleware library for local Domo App development. It intercepts
 ### ProxyId Mechanism
 
 Apps using DQL, writeback, or OAuth require a `proxyId` in manifest.json. This ID:
+
 - Ties the local dev environment to a specific published card instance
 - Can be extracted from the iframe URL of a published card (`//{proxyId}.domoapps.prodX.domo.com`)
 - Is used to retrieve scoped OAuth tokens from configstore
@@ -74,6 +78,7 @@ Apps using DQL, writeback, or OAuth require a `proxyId` in manifest.json. This I
 ## Error Handling
 
 DomoException errors contain:
+
 - `name`: "DomoException"
 - `status` or `statusCode`: HTTP status code
 - `statusMessage`: Error description
@@ -83,6 +88,7 @@ Handle these explicitly in middleware to expose detailed errors to developers.
 ## Versioning and Releases
 
 Uses standard-version for conventional commit-based versioning:
+
 - `npm run bump` - Auto-determine version from commits
 - `npm run bumpBeta` - Create beta prerelease
 - `npm run release` - Build and publish to npm

@@ -27,22 +27,20 @@ export class Proxy {
 
     if (proxyHost !== undefined && proxyPort !== undefined) {
       if (proxyUsername !== undefined && proxyPassword !== undefined) {
-        this.agent = new HttpsProxyAgent(
-          `http://${proxyUsername}:${proxyPassword}@${proxyHost}:${proxyPort}`,
-        );
+        this.agent = new HttpsProxyAgent(`http://${proxyUsername}:${proxyPassword}@${proxyHost}:${proxyPort}`);
       } else {
         this.agent = new HttpsProxyAgent(`http://${proxyHost}:${proxyPort}`);
       }
     }
   }
 
-  private onError = (err: any, res: Response) => {
-    const status = err.response?.data?.statusCode !== undefined
-      ? err.response.data.statusCode
-      : 500;
-    const msg = err.response?.data?.statusMessage !== undefined
-      ? err.response.data.statusMessage
-      : err.message ?? err;
+  private onError = (
+    err: Error & { response?: { data?: { statusCode?: number; statusMessage?: string } } },
+    res: Response
+  ) => {
+    const status = err.response?.data?.statusCode !== undefined ? err.response.data.statusCode : 500;
+    const msg =
+      err.response?.data?.statusMessage !== undefined ? err.response.data.statusMessage : (err.message ?? err);
 
     res.status(status).send(msg);
   };
@@ -54,10 +52,7 @@ export class Proxy {
         let filePath: string;
         let fieldName: string;
         bb.on('file', (fieldname, filestream, fileMetadata) => {
-          filePath = path.join(
-            os.tmpdir(),
-            path.basename(fileMetadata.filename),
-          );
+          filePath = path.join(os.tmpdir(), path.basename(fileMetadata.filename));
           fieldName = fieldname;
           filestream.pipe(createWriteStream(filePath));
         });
@@ -83,10 +78,12 @@ export class Proxy {
 
       return this.transport
         .build(req)
-        .then((options) => this.transport.request({
-          ...options,
-          httpsAgent: this.agent,
-        }))
+        .then((options) =>
+          this.transport.request({
+            ...options,
+            httpsAgent: this.agent,
+          })
+        )
         .then((rawRequest) => rawRequest.data.pipe(res))
         .catch((err) => this.onError(err, res));
     }
