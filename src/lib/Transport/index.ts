@@ -33,6 +33,18 @@ export default class Transport {
     );
     this.oauthTokenPromise = this.getScopedOauthTokens();
 
+    // Add error handlers to prevent unhandled promise rejections
+    // These will be caught by the actual consumers when they use the promises
+    this.clientPromise.catch(() => {
+      // Silently catch - error will be handled when promise is actually used
+    });
+    this.domainPromise.catch(() => {
+      // Silently catch - error will be handled when promise is actually used
+    });
+    this.oauthTokenPromise.catch(() => {
+      // Silently catch - error will be handled when promise is actually used
+    });
+
     // Initialize cookie jar once and reuse it for all requests to persist auth cookies
     wrapper(axios);
     this.cookieJar = new CookieJar();

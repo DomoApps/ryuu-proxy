@@ -72,6 +72,58 @@ describe("Proxy", () => {
     });
   });
 
+  describe("constructor without authentication", () => {
+    let originalEnv: NodeJS.ProcessEnv;
+    let getMostRecentLoginStub: any;
+    const utils = require("./lib/utils");
+
+    beforeEach(() => {
+      originalEnv = { ...process.env };
+      clientStub.restore();
+      domainStub.restore();
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+      if (getMostRecentLoginStub) getMostRecentLoginStub.restore();
+    });
+
+    it("should not throw unhandled promise rejection when created without authentication", (done) => {
+      // Simulate no authentication
+      getMostRecentLoginStub = sinon.stub(utils, "getMostRecentLogin").resolves({});
+
+      // Track if we get an unhandled rejection
+      let unhandledRejection = false;
+      const rejectionHandler = (reason: any) => {
+        if (reason && reason.message && reason.message.includes("Not authenticated")) {
+          unhandledRejection = true;
+        }
+      };
+
+      process.on("unhandledRejection", rejectionHandler);
+
+      // Create the proxy - this should not cause an unhandled promise rejection
+      try {
+        new Proxy({ manifest });
+
+        // Wait a bit to see if unhandled rejection occurs
+        setTimeout(() => {
+          process.removeListener("unhandledRejection", rejectionHandler);
+
+          // After our fix, this should NOT have an unhandled rejection
+          if (unhandledRejection) {
+            done(new Error("Unhandled promise rejection occurred during Proxy creation"));
+          } else {
+            done();
+          }
+        }, 100);
+      } catch (err) {
+        process.removeListener("unhandledRejection", rejectionHandler);
+        done(err);
+      }
+    });
+  });
+
   describe("constructor with proxy configuration", () => {
     let originalEnv: NodeJS.ProcessEnv;
 

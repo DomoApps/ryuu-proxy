@@ -812,4 +812,92 @@ describe('Transport', () => {
       });
     });
   });
+
+  describe('authentication error handling', () => {
+    let getLastLoginStub: sinon.SinonStub;
+    let getDomainPromiseStubLocal: sinon.SinonStub;
+
+    beforeEach(() => {
+      getDomainPromiseStubLocal = getDomainPromiseStub;
+      getDomainPromiseStubLocal.restore();
+    });
+
+    afterEach(() => {
+      if (getLastLoginStub) getLastLoginStub.restore();
+    });
+
+    it('should handle authentication errors gracefully when not authenticated', (done) => {
+      // Simulate getMostRecentLogin returning an empty object (no authentication)
+      getLastLoginStub = sinon.stub(Transport.prototype, 'getLastLogin').callsFake(() => {
+        // This simulates what happens when verifyLogin throws an error
+        return Promise.reject(new Error('Not authenticated. Please login using "domo login"'));
+      });
+
+      try {
+        const client = new Transport({ manifest });
+
+        // Try to build a request - this should trigger the authentication error
+        const req: Partial<IncomingMessage> = {
+          url: '/data/v1/test',
+          headers: {
+            referer: 'test.test',
+            accept: 'application/json',
+          },
+        };
+
+        client
+          .build(req as IncomingMessage)
+          .then(() => {
+            done(new Error('Should have thrown an authentication error'));
+          })
+          .catch((err) => {
+            expect(err).to.exist;
+            expect(err.message).to.include('Not authenticated');
+            done();
+          });
+      } catch (err: any) {
+        // If we catch an error here, it means unhandled promise rejection occurred
+        expect.fail('Unhandled promise rejection occurred during Transport construction');
+      }
+    });
+
+    it('should reject clientPromise when not authenticated', (done) => {
+      getLastLoginStub = sinon.stub(Transport.prototype, 'getLastLogin').callsFake(() => {
+        return Promise.reject(new Error('Not authenticated. Please login using "domo login"'));
+      });
+
+      const client = new Transport({ manifest });
+
+      // Access the clientPromise directly to verify it rejects properly
+      client['clientPromise']
+        .then(() => {
+          done(new Error('clientPromise should have been rejected'));
+        })
+        .catch((err) => {
+          expect(err).to.exist;
+          expect(err.message).to.include('Not authenticated');
+          done();
+        });
+    });
+
+    it('should reject domainPromise when authentication fails', (done) => {
+      getLastLoginStub = sinon.stub(Transport.prototype, 'getLastLogin').callsFake(() => {
+        return Promise.reject(new Error('Not authenticated. Please login using "domo login"'));
+      });
+
+      const client = new Transport({ manifest });
+
+      // The domainPromise depends on clientPromise, so it should also reject
+      client
+        .getDomainPromise()
+        .then(() => {
+          done(new Error('domainPromise should have been rejected'));
+        })
+        .catch((err) => {
+          expect(err).to.exist;
+          expect(err.message).to.include('Not authenticated');
+          done();
+        });
+    });
+  });
 });

@@ -93,7 +93,13 @@ export class Proxy {
 
   stream = (req: IncomingMessage) => {
     if (this.transport.isDomoRequest(req.url)) {
-      return this.transport.build(req).then(this.transport.request);
+      return this.transport
+        .build(req)
+        .then(this.transport.request)
+        .catch((err) => {
+          // Re-throw the error so callers can handle it
+          throw err;
+        });
     }
     return undefined;
   };
