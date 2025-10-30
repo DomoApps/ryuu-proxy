@@ -38,7 +38,8 @@ export default class Transport {
     this.cookieJar = new CookieJar();
   }
 
-  request = (options: any): Promise<any> => this.clientPromise.then((client) => client.processRequestRaw(options));
+  request = (options: AxiosRequestConfig): Promise<any> =>
+    this.clientPromise.then((client) => client.processRequestRaw(options as any));
 
   getEnv(instance: string): string {
     const regexp = /([-_\w]+)\.(.*)/;
@@ -163,15 +164,13 @@ export default class Transport {
         hostname = domain.url;
         return this.prepareHeaders(req.headers, this.proxyId, hostname);
       })
-      .then((headers) => {
-        return {
-          jar: this.cookieJar,
-          headers,
-          url: api,
-          responseType: 'stream' as const,
-          method: req.method,
-        };
-      });
+      .then((headers) => ({
+        jar: this.cookieJar,
+        headers,
+        url: api,
+        responseType: 'stream' as const,
+        method: req.method,
+      }));
   }
 
   private prepareHeaders(headers: IncomingHttpHeaders, _context: string, host: string): Promise<IncomingHttpHeaders> {
