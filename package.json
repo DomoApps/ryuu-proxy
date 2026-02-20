@@ -76,7 +76,7 @@
     "fs-extra": "^11.3.2",
     "glob": "^10.5.0",
     "https-proxy-agent": "^7.0.6",
-    "ryuu-client": "alpha",
+    "ryuu-client": "^4.4.5",
     "tough-cookie": "^5.0.0"
   },
   "peerDependencies": {
