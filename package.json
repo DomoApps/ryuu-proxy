@@ -81,7 +81,7 @@
   },
   "peerDependencies": {
     "express": "^4.17.0 || ^5.0.0",
-    "ryuu": "^4.2.5"
+    "ryuu": "^5.0.2"
   },
   "overrides": {
     "axios": "^1.13.5"
