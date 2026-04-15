@@ -1,15 +1,16 @@
-import Domo = require('ryuu-client');
-import { globSync } from 'glob';
+import { randomUUID } from 'node:crypto';
+import { getHomeDir } from 'ryuu-client';
+import { globSync } from 'tinyglobby';
 import * as fs from 'fs-extra';
 import Configstore from 'configstore';
 
-import { Manifest } from 'ryuu-client/lib/models';
-import { OAUTH_ENABLED } from '../constants';
-import { OauthToken } from '../models';
+import type { Manifest } from 'ryuu-client';
+import { OAUTH_ENABLED } from '../constants.js';
+import type { OauthToken } from '../models.js';
 
 export function getMostRecentLogin() {
-  const home = Domo.getHomeDir();
-  const logins = globSync(`${home}/ryuu/*.json`);
+  const home = getHomeDir();
+  const logins = globSync(['*.json'], { cwd: `${home}/ryuu`, absolute: true });
   if (logins.length === 0) return Promise.resolve({});
 
   const recent = logins.reduce((prev, next) => (fs.statSync(prev).mtime > fs.statSync(next).mtime ? prev : next));
@@ -24,7 +25,7 @@ export const isOauthEnabled = (manifest: Manifest): boolean =>
   Object.keys(manifest).includes(OAUTH_ENABLED) &&
   (manifest as unknown as Record<string, unknown>)[OAUTH_ENABLED] === true;
 
-export const getProxyId = (manifest: Manifest): string => manifest.proxyId ?? Domo.createUUID();
+export const getProxyId = (manifest: Manifest): string => manifest.proxyId ?? randomUUID();
 
 export function getOauthTokens(proxyId: string, scopes: string[] | undefined): Promise<OauthToken> {
   return getMostRecentLogin()

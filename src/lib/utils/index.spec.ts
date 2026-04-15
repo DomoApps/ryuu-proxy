@@ -1,32 +1,46 @@
-import * as sinon from 'sinon';
-import { expect } from 'chai';
-import * as glob from 'glob';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Configstore from 'configstore';
-const Domo = require('ryuu-client');
 
-import * as utils from '.';
-import { Manifest } from '../models';
+import * as utils from './index.js';
+import type { Manifest } from '../models.js';
+
+// Mock ryuu-client
+vi.mock('ryuu-client', () => ({
+  getHomeDir: vi.fn(() => '/home/user/.config/configstore'),
+}));
+
+// Mock tinyglobby
+vi.mock('tinyglobby', () => ({
+  globSync: vi.fn(() => []),
+}));
+
+// Mock fs-extra
+vi.mock('fs-extra', () => ({
+  default: {
+    statSync: vi.fn(),
+    readJsonSync: vi.fn(),
+  },
+  statSync: vi.fn(),
+  readJsonSync: vi.fn(),
+}));
+
+// Mock node:crypto
+vi.mock('node:crypto', () => ({
+  randomUUID: vi.fn(() => 'generated-uuid'),
+}));
 
 describe('Utils', () => {
   describe('getMostRecentLogin()', () => {
-    let getHomeDirStub: sinon.SinonStub;
-    let globSyncStub: sinon.SinonStub | undefined;
-
     beforeEach(() => {
-      getHomeDirStub = sinon.stub(Domo, 'getHomeDir').returns('/home/user');
-    });
-
-    afterEach(() => {
-      getHomeDirStub.restore();
-      if (globSyncStub) globSyncStub.restore();
+      vi.clearAllMocks();
     });
 
     it('should return empty object when no logins exist', async () => {
-      globSyncStub = sinon.stub(glob, 'globSync').returns([]);
+      const { globSync } = await import('tinyglobby');
+      vi.mocked(globSync).mockReturnValue([]);
 
       const result = await utils.getMostRecentLogin();
-
-      expect(result).to.deep.equal({});
+      expect(result).toEqual({});
     });
   });
 
@@ -40,7 +54,7 @@ describe('Utils', () => {
         oAuthEnabled: true,
       } as unknown as Manifest;
 
-      expect(utils.isOauthEnabled(manifest)).to.be.true;
+      expect(utils.isOauthEnabled(manifest)).toBe(true);
     });
 
     it('should return false when oAuthEnabled is false', () => {
@@ -52,7 +66,7 @@ describe('Utils', () => {
         oAuthEnabled: false,
       } as unknown as Manifest;
 
-      expect(utils.isOauthEnabled(manifest)).to.be.false;
+      expect(utils.isOauthEnabled(manifest)).toBe(false);
     });
 
     it('should return false when oAuthEnabled is not present', () => {
@@ -63,21 +77,11 @@ describe('Utils', () => {
         size: { width: 1, height: 1 },
       } as Manifest;
 
-      expect(utils.isOauthEnabled(manifest)).to.be.false;
+      expect(utils.isOauthEnabled(manifest)).toBe(false);
     });
   });
 
   describe('getProxyId()', () => {
-    let createUUIDStub: sinon.SinonStub;
-
-    beforeEach(() => {
-      createUUIDStub = sinon.stub(Domo, 'createUUID').returns('generated-uuid');
-    });
-
-    afterEach(() => {
-      createUUIDStub.restore();
-    });
-
     it('should return manifest proxyId when present', () => {
       const manifest = {
         id: 'test-id',
@@ -87,7 +91,7 @@ describe('Utils', () => {
         proxyId: 'existing-proxy-id',
       } as Manifest;
 
-      expect(utils.getProxyId(manifest)).to.equal('existing-proxy-id');
+      expect(utils.getProxyId(manifest)).toBe('existing-proxy-id');
     });
 
     it('should generate UUID when proxyId is not present', () => {
@@ -98,55 +102,59 @@ describe('Utils', () => {
         size: { width: 1, height: 1 },
       } as Manifest;
 
-      expect(utils.getProxyId(manifest)).to.equal('generated-uuid');
+      expect(utils.getProxyId(manifest)).toBe('generated-uuid');
     });
   });
 
   describe('getOauthTokens()', () => {
-    let getMostRecentLoginStub: sinon.SinonStub;
-    let configstoreGetStub: sinon.SinonStub;
+    let configstoreGetSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
-      configstoreGetStub = sinon.stub(Configstore.prototype, 'get');
+      configstoreGetSpy = vi.spyOn(Configstore.prototype, 'get');
     });
 
     afterEach(() => {
-      if (getMostRecentLoginStub) getMostRecentLoginStub.restore();
-      configstoreGetStub.restore();
+      configstoreGetSpy.mockRestore();
     });
 
     it('should return OAuth tokens with default scopes', async () => {
-      getMostRecentLoginStub = sinon.stub(utils, 'getMostRecentLogin').resolves({ instance: 'test.domo.com' });
+      const getMostRecentLoginSpy = vi.spyOn(utils, 'getMostRecentLogin').mockResolvedValue({ instance: 'test.domo.com' });
 
-      configstoreGetStub
-        .withArgs('test-proxy-id-domoapps-accessToken')
-        .returns('test-access-token')
-        .withArgs('test-proxy-id-domoapps-refreshToken')
-        .returns('test-refresh-token');
+      configstoreGetSpy
+        .mockImplementation((key: string) => {
+          if (key === 'test-proxy-id-domoapps-accessToken') return 'test-access-token';
+          if (key === 'test-proxy-id-domoapps-refreshToken') return 'test-refresh-token';
+          return undefined;
+        });
 
       const result = await utils.getOauthTokens('test-proxy-id', undefined);
 
-      expect(result).to.deep.equal({
+      expect(result).toEqual({
         access: 'test-access-token',
         refresh: 'test-refresh-token',
       });
+
+      getMostRecentLoginSpy.mockRestore();
     });
 
     it('should return OAuth tokens with custom scopes', async () => {
-      getMostRecentLoginStub = sinon.stub(utils, 'getMostRecentLogin').resolves({ instance: 'test.domo.com' });
+      const getMostRecentLoginSpy = vi.spyOn(utils, 'getMostRecentLogin').mockResolvedValue({ instance: 'test.domo.com' });
 
-      configstoreGetStub
-        .withArgs('test-proxy-id-domoapps-custom1-custom2-accessToken')
-        .returns('test-access-token')
-        .withArgs('test-proxy-id-domoapps-custom1-custom2-refreshToken')
-        .returns('test-refresh-token');
+      configstoreGetSpy
+        .mockImplementation((key: string) => {
+          if (key === 'test-proxy-id-domoapps-custom1-custom2-accessToken') return 'test-access-token';
+          if (key === 'test-proxy-id-domoapps-custom1-custom2-refreshToken') return 'test-refresh-token';
+          return undefined;
+        });
 
       const result = await utils.getOauthTokens('test-proxy-id', ['custom1', 'custom2']);
 
-      expect(result).to.deep.equal({
+      expect(result).toEqual({
         access: 'test-access-token',
         refresh: 'test-refresh-token',
       });
+
+      getMostRecentLoginSpy.mockRestore();
     });
   });
 });

@@ -1,192 +1,111 @@
-import * as sinon from "sinon";
-import { expect } from "chai";
-import { Proxy } from ".";
-import Transport from "./lib/Transport";
-import { Manifest } from "./lib/models";
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { Proxy } from './index.js';
+import Transport from './lib/Transport/index.js';
+import type { Manifest } from './lib/models.js';
+import type { RyuuClient } from 'ryuu-client';
 
-const Domo = require("ryuu-client");
+const manifest: Manifest = {
+  id: 'test-id',
+  name: 'test-app',
+  version: '1.0.0',
+  size: { width: 1, height: 1 },
+  draft: false,
+  publicAssetsEnabled: false,
+  flags: new Map<string, boolean>(),
+  fullpage: false,
+};
 
-describe("Proxy", () => {
-  let client: Proxy;
-  let clientStub: sinon.SinonStub;
-  let domainStub: sinon.SinonStub;
-
-  const manifest: Manifest = {
-    id: "test-id",
-    name: "test-app",
-    version: "1.0.0",
-    size: { width: 1, height: 1 },
-    draft: false,
-    publicAssetsEnabled: false,
-    flags: new Map<string, boolean>(),
-    fullpage: false,
+function createMockClient(): RyuuClient {
+  return {
+    instance: 'test.dev.domo.com',
+    refreshToken: 'test-token',
+    designs: {} as any,
+    assets: {} as any,
+    apps: {
+      createInstance: vi.fn(),
+      getEnvironment: vi.fn().mockResolvedValue({
+        url: 'https://test.domoapps.dev.domo.com',
+      }),
+    } as any,
+    users: {} as any,
+    login: vi.fn(),
+    request: vi.fn(),
   };
+}
+
+describe('Proxy', () => {
+  let client: Proxy;
+  let clientStub: ReturnType<typeof vi.spyOn>;
+  let domainStub: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    clientStub = sinon
-      .stub(Transport.prototype, "getLastLogin")
-      .returns(
-        Promise.resolve(
-          new Domo("test.dev.domo.com", "test-token", "client-id")
-        )
-      );
+    clientStub = vi.spyOn(Transport.prototype, 'getLastLogin').mockReturnValue(
+      Promise.resolve(createMockClient())
+    );
 
-    domainStub = sinon
-      .stub(Transport.prototype, "getDomainPromise")
-      .returns(Promise.resolve({ url: "https://test.domoapps.dev.domo.com" }));
+    domainStub = vi.spyOn(Transport.prototype, 'getDomainPromise').mockReturnValue(
+      Promise.resolve({ url: 'https://test.domoapps.dev.domo.com' })
+    );
 
     client = new Proxy({ manifest });
   });
 
   afterEach(() => {
-    clientStub.restore();
-    domainStub.restore();
+    clientStub.mockRestore();
+    domainStub.mockRestore();
   });
 
-  it("should instantiate", () => {
-    expect(Proxy).to.exist;
-    expect(Proxy).to.be.an.instanceof(Function);
-
-    expect(client).to.exist;
-    expect(client).to.be.an.instanceof(Proxy);
+  it('should instantiate', () => {
+    expect(Proxy).toBeDefined();
+    expect(typeof Proxy).toBe('function');
+    expect(client).toBeDefined();
+    expect(client).toBeInstanceOf(Proxy);
   });
 
-  describe("express()", () => {
-    it("should instantiate", () => {
-      expect(client.express).to.exist;
-      expect(client.express).to.be.an.instanceOf(Function);
-    });
-
-    it("should return express middleware", () => {
+  describe('express()', () => {
+    it('should return express middleware', () => {
       const func = client.express();
-      expect(func).to.exist;
-      expect(func).to.be.an.instanceof(Function);
-      expect(func.length).to.be.equal(3);
+      expect(func).toBeDefined();
+      expect(typeof func).toBe('function');
+      expect(func.length).toBe(3);
     });
   });
 
-  describe("stream()", () => {
-    it("should instantiate", () => {
-      expect(client.stream).to.exist;
-      expect(client.stream).to.be.an.instanceOf(Function);
+  describe('stream()', () => {
+    it('should exist and be a function', () => {
+      expect(client.stream).toBeDefined();
+      expect(typeof client.stream).toBe('function');
     });
   });
 
-  describe("constructor without authentication", () => {
-    let originalEnv: NodeJS.ProcessEnv;
-    let getMostRecentLoginStub: any;
-    const utils = require("./lib/utils");
+  describe('constructor without authentication', () => {
+    it('should not throw unhandled promise rejection when created without authentication', async () => {
+      clientStub.mockRestore();
+      domainStub.mockRestore();
 
-    beforeEach(() => {
-      originalEnv = { ...process.env };
-      clientStub.restore();
-      domainStub.restore();
-    });
+      const getMostRecentLoginStub = vi.spyOn(Transport.prototype, 'getLastLogin').mockReturnValue(
+        Promise.reject(new Error('Not authenticated. Please login using "domo login"'))
+      );
 
-    afterEach(() => {
-      process.env = originalEnv;
-      if (getMostRecentLoginStub) getMostRecentLoginStub.restore();
-    });
-
-    it("should not throw unhandled promise rejection when created without authentication", (done) => {
-      // Simulate no authentication
-      getMostRecentLoginStub = sinon.stub(utils, "getMostRecentLogin").resolves({});
-
-      // Track if we get an unhandled rejection
+      // Track unhandled rejections
       let unhandledRejection = false;
       const rejectionHandler = (reason: any) => {
-        if (reason && reason.message && reason.message.includes("Not authenticated")) {
+        if (reason?.message?.includes('Not authenticated')) {
           unhandledRejection = true;
         }
       };
 
-      process.on("unhandledRejection", rejectionHandler);
+      process.on('unhandledRejection', rejectionHandler);
 
-      // Create the proxy - this should not cause an unhandled promise rejection
-      try {
-        new Proxy({ manifest });
+      new Proxy({ manifest });
 
-        // Wait a bit to see if unhandled rejection occurs
-        setTimeout(() => {
-          process.removeListener("unhandledRejection", rejectionHandler);
+      // Wait for any potential unhandled rejections
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-          // After our fix, this should NOT have an unhandled rejection
-          if (unhandledRejection) {
-            done(new Error("Unhandled promise rejection occurred during Proxy creation"));
-          } else {
-            done();
-          }
-        }, 100);
-      } catch (err) {
-        process.removeListener("unhandledRejection", rejectionHandler);
-        done(err);
-      }
-    });
-  });
+      process.removeListener('unhandledRejection', rejectionHandler);
+      expect(unhandledRejection).toBe(false);
 
-  describe("constructor with proxy configuration", () => {
-    let originalEnv: NodeJS.ProcessEnv;
-
-    beforeEach(() => {
-      originalEnv = { ...process.env };
-      clientStub.restore();
-      domainStub.restore();
-    });
-
-    afterEach(() => {
-      process.env = originalEnv;
-    });
-
-    it("should configure HttpsProxyAgent with credentials", () => {
-      process.env.PROXY_HOST = "proxy.test.com";
-      process.env.PROXY_PORT = "8080";
-      process.env.PROXY_USERNAME = "testuser";
-      process.env.PROXY_PASSWORD = "testpass";
-
-      clientStub = sinon
-        .stub(Transport.prototype, "getLastLogin")
-        .returns(
-          Promise.resolve(
-            new Domo("test.dev.domo.com", "test-token", "client-id")
-          )
-        );
-
-      domainStub = sinon
-        .stub(Transport.prototype, "getDomainPromise")
-        .returns(
-          Promise.resolve({ url: "https://test.domoapps.dev.domo.com" })
-        );
-
-      const proxyClient = new Proxy({ manifest });
-
-      expect(proxyClient).to.exist;
-      expect(proxyClient).to.be.an.instanceof(Proxy);
-    });
-
-    it("should configure HttpsProxyAgent without credentials", () => {
-      process.env.PROXY_HOST = "proxy.test.com";
-      process.env.PROXY_PORT = "8080";
-      delete process.env.PROXY_USERNAME;
-      delete process.env.PROXY_PASSWORD;
-
-      clientStub = sinon
-        .stub(Transport.prototype, "getLastLogin")
-        .returns(
-          Promise.resolve(
-            new Domo("test.dev.domo.com", "test-token", "client-id")
-          )
-        );
-
-      domainStub = sinon
-        .stub(Transport.prototype, "getDomainPromise")
-        .returns(
-          Promise.resolve({ url: "https://test.domoapps.dev.domo.com" })
-        );
-
-      const proxyClient = new Proxy({ manifest });
-
-      expect(proxyClient).to.exist;
-      expect(proxyClient).to.be.an.instanceof(Proxy);
+      getMostRecentLoginStub.mockRestore();
     });
   });
 });

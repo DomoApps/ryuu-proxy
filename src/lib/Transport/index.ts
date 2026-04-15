@@ -1,20 +1,17 @@
-import Domo = require('ryuu-client');
-import axios, { AxiosRequestConfig } from 'axios';
+import { createClient, type RyuuClient } from 'ryuu-client';
+import type { Manifest } from 'ryuu-client';
 import { Request } from 'express';
 import { IncomingMessage, IncomingHttpHeaders } from 'http';
-import { wrapper } from 'axios-cookiejar-support';
-import { CookieJar } from 'tough-cookie';
 
 import * as dotenv from 'dotenv';
-import { Manifest } from 'ryuu-client/lib/models';
-import { getMostRecentLogin, getProxyId, isOauthEnabled, getOauthTokens } from '../utils';
-import { ProxyOptions, OauthToken } from '../models';
-import { CLIENT_ID } from '../constants';
+import { getMostRecentLogin, getProxyId, isOauthEnabled, getOauthTokens } from '../utils/index.js';
+import type { ProxyOptions, ProxyRequestOptions, OauthToken } from '../models.js';
+import { CLIENT_ID } from '../constants.js';
 
 export default class Transport {
   private manifest: Manifest;
 
-  private clientPromise: Promise<Domo>;
+  private clientPromise: Promise<RyuuClient>;
 
   private domainPromise: Promise<{ url: string }>;
 
@@ -22,14 +19,12 @@ export default class Transport {
 
   private oauthTokenPromise: Promise<OauthToken | undefined>;
 
-  private cookieJar: CookieJar;
-
   constructor({ manifest }: ProxyOptions) {
     this.manifest = manifest;
     this.clientPromise = this.getLastLogin();
     this.proxyId = getProxyId(manifest);
     this.domainPromise = this.clientPromise.then(async (client) =>
-      client.getDomoappsData({ ...this.manifest }, this.proxyId)
+      client.apps.getEnvironment(this.manifest, this.proxyId)
     );
     this.oauthTokenPromise = this.getScopedOauthTokens();
 
@@ -44,14 +39,17 @@ export default class Transport {
     this.oauthTokenPromise.catch(() => {
       // Silently catch - error will be handled when promise is actually used
     });
-
-    // Initialize cookie jar once and reuse it for all requests to persist auth cookies
-    wrapper(axios);
-    this.cookieJar = new CookieJar();
   }
 
-  request = (options: AxiosRequestConfig): Promise<any> =>
-    this.clientPromise.then((client) => client.processRequestRaw(options as any));
+  request = async (options: ProxyRequestOptions): Promise<Response> => {
+    const client = await this.clientPromise;
+    return client.request<Response>(options.url, {
+      method: options.method,
+      headers: options.headers as Record<string, string>,
+      body: options.body,
+      rawResponse: true,
+    });
+  };
 
   getEnv(instance: string): string {
     const regexp = /([-_\w]+)\.(.*)/;
@@ -99,7 +97,7 @@ export default class Transport {
     return this.domainPromise;
   }
 
-  getLastLogin(): Promise<Domo> {
+  getLastLogin(): Promise<RyuuClient> {
     return getMostRecentLogin()
       .then(this.verifyLogin)
       .then((recentLogin) => {
@@ -109,38 +107,24 @@ export default class Transport {
         const proxyUsername = process.env.REACT_APP_PROXY_USERNAME ?? process.env.PROXY_USERNAME;
         const proxyPassword = process.env.REACT_APP_PROXY_PASSWORD ?? process.env.PROXY_PASSWORD;
 
-        if (proxyHost !== undefined && proxyPort !== undefined) {
-          if (proxyUsername !== undefined && proxyPassword !== undefined) {
-            return new Domo(
-              recentLogin.instance!,
-              recentLogin.refreshToken!,
-              CLIENT_ID,
-              {
+        const proxy =
+          proxyHost !== undefined && proxyPort !== undefined
+            ? {
                 host: proxyHost,
                 port: proxyPort,
-                auth: `${proxyUsername}:${proxyPassword}`,
-              },
-              recentLogin.devToken as boolean
-            );
-          }
-          return new Domo(
-            recentLogin.instance!,
-            recentLogin.refreshToken!,
-            CLIENT_ID,
-            {
-              host: proxyHost,
-              port: proxyPort,
-            },
-            recentLogin.devToken as boolean
-          );
-        }
-        return new Domo(
-          recentLogin.instance!,
-          recentLogin.refreshToken!,
-          CLIENT_ID,
-          {},
-          recentLogin.devToken as boolean
-        );
+                ...(proxyUsername !== undefined && proxyPassword !== undefined
+                  ? { username: proxyUsername, password: proxyPassword }
+                  : {}),
+              }
+            : undefined;
+
+        return createClient({
+          instance: recentLogin.instance!,
+          refreshToken: recentLogin.refreshToken!,
+          clientId: CLIENT_ID,
+          devToken: recentLogin.devToken as boolean,
+          proxy,
+        });
       });
   }
 
@@ -152,22 +136,20 @@ export default class Transport {
     return Promise.resolve(undefined);
   }
 
-  build(req: IncomingMessage): Promise<AxiosRequestConfig> {
-    let options: AxiosRequestConfig;
+  build(req: IncomingMessage): Promise<ProxyRequestOptions> {
+    let options: ProxyRequestOptions;
     return this.buildBasic(req)
       .then((basicOptions) => {
         options = basicOptions;
-        options.transformResponse = [];
-        options.responseType = 'stream';
         return this.parseBody(req);
       })
       .then((data) => ({
         ...options,
-        data,
+        body: data ?? undefined,
       }));
   }
 
-  buildBasic(req: IncomingMessage): Promise<AxiosRequestConfig> {
+  buildBasic(req: IncomingMessage): Promise<ProxyRequestOptions> {
     let api: string;
     let hostname: string;
     return this.domainPromise
@@ -177,15 +159,13 @@ export default class Transport {
         return this.prepareHeaders(req.headers, this.proxyId, hostname);
       })
       .then((headers) => ({
-        jar: this.cookieJar,
         headers,
         url: api,
-        responseType: 'stream' as const,
         method: req.method,
       }));
   }
 
-  private prepareHeaders(headers: IncomingHttpHeaders, _context: string, host: string): Promise<IncomingHttpHeaders> {
+  private prepareHeaders(headers: IncomingHttpHeaders, _context: string, host: string): Promise<Record<string, string | string[] | undefined>> {
     const hostname = host.replace('https://', '');
     return this.oauthTokenPromise.then((tokens: OauthToken | undefined) => {
       const refererValue = headers.referer ?? 'https://0.0.0.0:3000';

@@ -1,5 +1,5 @@
-import { expect } from 'chai';
-import { DomoException } from './errors';
+import { describe, it, expect } from 'vitest';
+import { DomoException } from './errors.js';
 
 describe('DomoException', () => {
   it('should instantiate with error containing body.message', () => {
@@ -11,13 +11,13 @@ describe('DomoException', () => {
 
     const exception = new DomoException(err, url);
 
-    expect(exception).to.be.instanceOf(DomoException);
-    expect(exception).to.be.instanceOf(Error);
-    expect(exception.name).to.equal('DomoException');
-    expect(exception.error).to.equal('Test error message');
-    expect(exception.statusCode).to.equal(400);
-    expect(exception.url).to.equal(url);
-    expect(exception.proxy).to.include('domo login');
+    expect(exception).toBeInstanceOf(DomoException);
+    expect(exception).toBeInstanceOf(Error);
+    expect(exception.name).toBe('DomoException');
+    expect(exception.error).toBe('Test error message');
+    expect(exception.statusCode).toBe(400);
+    expect(exception.url).toBe(url);
+    expect(exception.proxy).toContain('domo login');
   });
 
   it('should use err.message when body.message is not available', () => {
@@ -29,8 +29,8 @@ describe('DomoException', () => {
 
     const exception = new DomoException(err, url);
 
-    expect(exception.error).to.equal('Direct error message');
-    expect(exception.statusCode).to.equal(401);
+    expect(exception.error).toBe('Direct error message');
+    expect(exception.statusCode).toBe(401);
   });
 
   it('should default to "Unknown error" when no message is available', () => {
@@ -41,8 +41,8 @@ describe('DomoException', () => {
 
     const exception = new DomoException(err, url);
 
-    expect(exception.error).to.equal('Unknown error');
-    expect(exception.statusCode).to.equal(500);
+    expect(exception.error).toBe('Unknown error');
+    expect(exception.statusCode).toBe(500);
   });
 
   it('should default statusCode to 500 when not provided', () => {
@@ -53,7 +53,7 @@ describe('DomoException', () => {
 
     const exception = new DomoException(err, url);
 
-    expect(exception.statusCode).to.equal(500);
+    expect(exception.statusCode).toBe(500);
   });
 
   it('should have correct error message content', () => {
@@ -65,8 +65,8 @@ describe('DomoException', () => {
 
     const exception = new DomoException(err, url);
 
-    expect(exception.message).to.include('manifest.json should have an Id');
-    expect(exception.message).to.include('domo login');
-    expect(exception.proxy).to.equal(exception.message);
+    expect(exception.message).toContain('manifest.json should have an Id');
+    expect(exception.message).toContain('domo login');
+    expect(exception.proxy).toBe(exception.message);
   });
 });

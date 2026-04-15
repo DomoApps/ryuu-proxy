@@ -1,48 +1,48 @@
 import * as path from 'path';
 import * as os from 'os';
-import FormData from 'form-data';
-import { createWriteStream, createReadStream } from 'fs';
+import { createWriteStream } from 'fs';
+import { readFile } from 'node:fs/promises';
+import { Readable } from 'node:stream';
 import { Request, Response, NextFunction } from 'express';
 import { IncomingMessage } from 'http';
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import * as dotenv from 'dotenv';
-import busboy from 'busboy';
 
-import Transport from './lib/Transport';
-import { ProxyOptions } from './lib/models';
+import Transport from './lib/Transport/index.js';
+import type { ProxyOptions } from './lib/models.js';
+import busboy from 'busboy';
 
 export class Proxy {
   private transport: Transport;
 
-  private agent: HttpsProxyAgent<string> | undefined;
-
   constructor(config: ProxyOptions) {
     this.transport = new Transport(config);
-    dotenv.config({ path: `${process.cwd()}/.env` });
-
-    const proxyHost = process.env.REACT_APP_PROXY_HOST ?? process.env.PROXY_HOST;
-    const proxyPort = process.env.REACT_APP_PROXY_PORT ?? process.env.PROXY_PORT;
-    const proxyUsername = process.env.REACT_APP_PROXY_USERNAME ?? process.env.PROXY_USERNAME;
-    const proxyPassword = process.env.REACT_APP_PROXY_PASSWORD ?? process.env.PROXY_PASSWORD;
-
-    if (proxyHost !== undefined && proxyPort !== undefined) {
-      if (proxyUsername !== undefined && proxyPassword !== undefined) {
-        this.agent = new HttpsProxyAgent(`http://${proxyUsername}:${proxyPassword}@${proxyHost}:${proxyPort}`);
-      } else {
-        this.agent = new HttpsProxyAgent(`http://${proxyHost}:${proxyPort}`);
-      }
-    }
   }
 
   private onError = (
-    err: Error & { response?: { data?: { statusCode?: number; statusMessage?: string } } },
+    err: Error & { status?: number; statusCode?: number; response?: { data?: { statusCode?: number; statusMessage?: string } } },
     res: Response
   ) => {
-    const status = err.response?.data?.statusCode !== undefined ? err.response.data.statusCode : 500;
-    const msg =
-      err.response?.data?.statusMessage !== undefined ? err.response.data.statusMessage : (err.message ?? err);
+    const status = err.status ?? err.statusCode ?? err.response?.data?.statusCode ?? 500;
+    const msg = err.response?.data?.statusMessage ?? err.message ?? 'Unknown error';
 
     res.status(status).send(msg);
+  };
+
+  private pipeResponse = (response: globalThis.Response, res: Response) => {
+    res.status(response.status);
+
+    // Forward relevant headers from upstream
+    response.headers.forEach((value, key) => {
+      // Skip hop-by-hop headers
+      if (!['transfer-encoding', 'connection', 'keep-alive'].includes(key.toLowerCase())) {
+        res.setHeader(key, value);
+      }
+    });
+
+    if (response.body) {
+      Readable.fromWeb(response.body as any).pipe(res);
+    } else {
+      res.end();
+    }
   };
 
   express = () => (req: Request, res: Response, next: NextFunction) => {
@@ -59,17 +59,17 @@ export class Proxy {
         bb.on('finish', () => {
           this.transport
             .buildBasic(req)
-            .then((options) => {
+            .then(async (options) => {
+              const fileBuffer = await readFile(filePath);
               const form = new FormData();
-              form.append(fieldName, createReadStream(filePath));
+              form.append(fieldName, new Blob([fileBuffer]), path.basename(filePath));
 
               return this.transport.request({
                 ...options,
-                headers: { ...options.headers, ...form.getHeaders() },
-                data: form,
+                body: form,
               });
             })
-            .then((rawRequest) => rawRequest.data.pipe(res))
+            .then((response) => this.pipeResponse(response, res))
             .catch((err) => this.onError(err, res));
         });
 
@@ -78,13 +78,8 @@ export class Proxy {
 
       return this.transport
         .build(req)
-        .then((options) =>
-          this.transport.request({
-            ...options,
-            httpsAgent: this.agent,
-          })
-        )
-        .then((rawRequest) => rawRequest.data.pipe(res))
+        .then((options) => this.transport.request(options))
+        .then((response) => this.pipeResponse(response, res))
         .catch((err) => this.onError(err, res));
     }
 

@@ -1,6 +1,7 @@
 # Domo Apps specific
 dist
 .awcache
+*.tgz
 
 ############################################################################
 # NodeJS specific gitignore
