@@ -1,111 +1,310 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Proxy } from './index.js';
-import Transport from './lib/Transport/index.js';
-import type { Manifest } from './lib/models.js';
+import { describe, it, expect, vi } from 'vitest';
+import MockReq from 'mock-req';
+import type { IncomingMessage } from 'http';
 import type { RyuuClient } from 'ryuu-client';
 
-const manifest: Manifest = {
+import { createProxy, getOauthTokens } from './index.js';
+
+function createMockClient(): RyuuClient {
+  return {
+    instance: 'test.domo.com',
+    refreshToken: 'test-token',
+    designs: {} as any,
+    assets: {} as any,
+    apps: {} as any,
+    users: {} as any,
+    login: vi.fn(),
+    request: vi.fn().mockResolvedValue(new Response('ok', { status: 200 })),
+  };
+}
+
+const manifest = {
   id: 'test-id',
   name: 'test-app',
   version: '1.0.0',
   size: { width: 1, height: 1 },
-  draft: false,
-  publicAssetsEnabled: false,
-  flags: new Map<string, boolean>(),
-  fullpage: false,
-};
+} as any;
 
-function createMockClient(): RyuuClient {
-  return {
-    instance: 'test.dev.domo.com',
-    refreshToken: 'test-token',
-    designs: {} as any,
-    assets: {} as any,
-    apps: {
-      createInstance: vi.fn(),
-      getEnvironment: vi.fn().mockResolvedValue({
-        url: 'https://test.domoapps.dev.domo.com',
-      }),
-    } as any,
-    users: {} as any,
-    login: vi.fn(),
-    request: vi.fn(),
-  };
-}
+const domainUrl = 'https://test-proxy-id.domoapps.test.domo.com';
 
-describe('Proxy', () => {
-  let client: Proxy;
-  let clientStub: ReturnType<typeof vi.spyOn>;
-  let domainStub: ReturnType<typeof vi.spyOn>;
+describe('createProxy', () => {
+  it('should return express, stream, and isDomoRequest', () => {
+    const proxy = createProxy({
+      client: createMockClient(),
+      manifest,
+      domainUrl,
+    });
 
-  beforeEach(() => {
-    clientStub = vi.spyOn(Transport.prototype, 'getLastLogin').mockReturnValue(
-      Promise.resolve(createMockClient())
-    );
-
-    domainStub = vi.spyOn(Transport.prototype, 'getDomainPromise').mockReturnValue(
-      Promise.resolve({ url: 'https://test.domoapps.dev.domo.com' })
-    );
-
-    client = new Proxy({ manifest });
+    expect(typeof proxy.express).toBe('function');
+    expect(typeof proxy.stream).toBe('function');
+    expect(typeof proxy.isDomoRequest).toBe('function');
   });
 
-  afterEach(() => {
-    clientStub.mockRestore();
-    domainStub.mockRestore();
-  });
+  describe('isDomoRequest', () => {
+    const proxy = createProxy({
+      client: createMockClient(),
+      manifest,
+      domainUrl,
+    });
 
-  it('should instantiate', () => {
-    expect(Proxy).toBeDefined();
-    expect(typeof Proxy).toBe('function');
-    expect(client).toBeDefined();
-    expect(client).toBeInstanceOf(Proxy);
+    it('should match /domo requests', () => {
+      expect(proxy.isDomoRequest('/domo/users/v1')).toBe(true);
+      expect(proxy.isDomoRequest('/domo/avatars/v1')).toBe(true);
+    });
+
+    it('should match /data requests', () => {
+      expect(proxy.isDomoRequest('/data/v1/alias')).toBe(true);
+    });
+
+    it('should match /dql requests', () => {
+      expect(proxy.isDomoRequest('/dql/v1/alias')).toBe(true);
+    });
+
+    it('should match /sql requests', () => {
+      expect(proxy.isDomoRequest('/sql/v1/query')).toBe(true);
+    });
+
+    it('should match /api requests', () => {
+      expect(proxy.isDomoRequest('/api/data/v2/datasources')).toBe(true);
+    });
+
+    it('should reject invalid urls', () => {
+      expect(proxy.isDomoRequest('/bad/url')).toBe(false);
+      expect(proxy.isDomoRequest('/data/alias')).toBe(false);
+      expect(proxy.isDomoRequest(undefined)).toBe(false);
+    });
   });
 
   describe('express()', () => {
-    it('should return express middleware', () => {
-      const func = client.express();
-      expect(func).toBeDefined();
-      expect(typeof func).toBe('function');
-      expect(func.length).toBe(3);
+    it('should return middleware with correct arity', () => {
+      const proxy = createProxy({
+        client: createMockClient(),
+        manifest,
+        domainUrl,
+      });
+
+      const middleware = proxy.express();
+      expect(typeof middleware).toBe('function');
+      expect(middleware.length).toBe(3);
+    });
+
+    it('should call next() for non-Domo requests', () => {
+      const proxy = createProxy({
+        client: createMockClient(),
+        manifest,
+        domainUrl,
+      });
+
+      const middleware = proxy.express();
+      const req = { url: '/some/other/path', headers: {} } as any;
+      const res = {} as any;
+      const next = vi.fn();
+
+      middleware(req, res, next);
+      expect(next).toHaveBeenCalled();
+    });
+
+    it('should proxy Domo requests with correct URL', async () => {
+      const mockClient = createMockClient();
+      const proxy = createProxy({
+        client: mockClient,
+        manifest,
+        domainUrl,
+      });
+
+      const middleware = proxy.express();
+      const req = new MockReq({
+        url: '/data/v1/test?fields=field1',
+        method: 'GET',
+        headers: { referer: 'test.test?userId=27', accept: 'application/json' },
+      });
+      req.end();
+
+      const res = {
+        status: vi.fn().mockReturnThis(),
+        setHeader: vi.fn(),
+        end: vi.fn(),
+        send: vi.fn(),
+      } as any;
+      const next = vi.fn();
+
+      middleware(req as any, res, next);
+
+      // Wait for async proxy
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(mockClient.request).toHaveBeenCalledWith(
+        `${domainUrl}/data/v1/test?fields=field1`,
+        expect.objectContaining({
+          method: 'GET',
+          rawResponse: true,
+        }),
+      );
+    });
+
+    it('should preserve referer with query params', async () => {
+      const mockClient = createMockClient();
+      const proxy = createProxy({
+        client: mockClient,
+        manifest,
+        domainUrl,
+      });
+
+      const middleware = proxy.express();
+      const req = new MockReq({
+        url: '/data/v1/test',
+        method: 'GET',
+        headers: { referer: 'test.test?userId=27' },
+      });
+      req.end();
+
+      const res = {
+        status: vi.fn().mockReturnThis(),
+        setHeader: vi.fn(),
+        end: vi.fn(),
+        send: vi.fn(),
+      } as any;
+
+      middleware(req as any, res, vi.fn());
+      await new Promise((r) => setTimeout(r, 50));
+
+      const callHeaders = (mockClient.request as any).mock.calls[0][1].headers;
+      expect(callHeaders.referer).toBe('test.test?userId=27');
+    });
+
+    it('should add default params to referer without query', async () => {
+      const mockClient = createMockClient();
+      const proxy = createProxy({
+        client: mockClient,
+        manifest,
+        domainUrl,
+      });
+
+      const middleware = proxy.express();
+      const req = new MockReq({
+        url: '/data/v1/test',
+        method: 'GET',
+        headers: { referer: 'https://test.domo.com/page' },
+      });
+      req.end();
+
+      const res = {
+        status: vi.fn().mockReturnThis(),
+        setHeader: vi.fn(),
+        end: vi.fn(),
+        send: vi.fn(),
+      } as any;
+
+      middleware(req as any, res, vi.fn());
+      await new Promise((r) => setTimeout(r, 50));
+
+      const callHeaders = (mockClient.request as any).mock.calls[0][1].headers;
+      expect(callHeaders.referer).toContain('userId=27');
+      expect(callHeaders.referer).toContain('customer=dev');
+    });
+  });
+
+  describe('with OAuth tokens', () => {
+    it('should inject OAuth cookies', async () => {
+      const mockClient = createMockClient();
+      const proxy = createProxy({
+        client: mockClient,
+        manifest,
+        domainUrl,
+        oauthTokens: { access: 'test-access', refresh: 'test-refresh' },
+      });
+
+      const middleware = proxy.express();
+      const req = new MockReq({
+        url: '/data/v1/test',
+        method: 'GET',
+        headers: { referer: 'test.test?x=1' },
+      });
+      req.end();
+
+      const res = {
+        status: vi.fn().mockReturnThis(),
+        setHeader: vi.fn(),
+        end: vi.fn(),
+        send: vi.fn(),
+      } as any;
+
+      middleware(req as any, res, vi.fn());
+      await new Promise((r) => setTimeout(r, 50));
+
+      const callHeaders = (mockClient.request as any).mock.calls[0][1].headers;
+      expect(callHeaders.cookie).toContain('_daatv1=test-access');
+      expect(callHeaders.cookie).toContain('_dartv1=test-refresh');
+    });
+
+    it('should merge existing cookies with OAuth tokens', async () => {
+      const mockClient = createMockClient();
+      const proxy = createProxy({
+        client: mockClient,
+        manifest,
+        domainUrl,
+        oauthTokens: { access: 'test-access', refresh: 'test-refresh' },
+      });
+
+      const middleware = proxy.express();
+      const req = new MockReq({
+        url: '/data/v1/test',
+        method: 'GET',
+        headers: { referer: 'test.test?x=1', cookie: 'existing=value' },
+      });
+      req.end();
+
+      const res = {
+        status: vi.fn().mockReturnThis(),
+        setHeader: vi.fn(),
+        end: vi.fn(),
+        send: vi.fn(),
+      } as any;
+
+      middleware(req as any, res, vi.fn());
+      await new Promise((r) => setTimeout(r, 50));
+
+      const callHeaders = (mockClient.request as any).mock.calls[0][1].headers;
+      expect(callHeaders.cookie).toContain('existing=value');
+      expect(callHeaders.cookie).toContain('_daatv1=test-access');
     });
   });
 
   describe('stream()', () => {
-    it('should exist and be a function', () => {
-      expect(client.stream).toBeDefined();
-      expect(typeof client.stream).toBe('function');
+    it('should return undefined for non-Domo requests', () => {
+      const proxy = createProxy({
+        client: createMockClient(),
+        manifest,
+        domainUrl,
+      });
+
+      const req = { url: '/other', headers: {} } as IncomingMessage;
+      expect(proxy.stream(req)).toBeUndefined();
+    });
+
+    it('should return a promise for Domo requests', () => {
+      const proxy = createProxy({
+        client: createMockClient(),
+        manifest,
+        domainUrl,
+      });
+
+      const req = new MockReq({
+        url: '/data/v1/test',
+        method: 'GET',
+        headers: { referer: 'test?x=1' },
+      });
+      req.end();
+
+      const result = proxy.stream(req as IncomingMessage);
+      expect(result).toBeInstanceOf(Promise);
     });
   });
+});
 
-  describe('constructor without authentication', () => {
-    it('should not throw unhandled promise rejection when created without authentication', async () => {
-      clientStub.mockRestore();
-      domainStub.mockRestore();
-
-      const getMostRecentLoginStub = vi.spyOn(Transport.prototype, 'getLastLogin').mockReturnValue(
-        Promise.reject(new Error('Not authenticated. Please login using "domo login"'))
-      );
-
-      // Track unhandled rejections
-      let unhandledRejection = false;
-      const rejectionHandler = (reason: any) => {
-        if (reason?.message?.includes('Not authenticated')) {
-          unhandledRejection = true;
-        }
-      };
-
-      process.on('unhandledRejection', rejectionHandler);
-
-      new Proxy({ manifest });
-
-      // Wait for any potential unhandled rejections
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      process.removeListener('unhandledRejection', rejectionHandler);
-      expect(unhandledRejection).toBe(false);
-
-      getMostRecentLoginStub.mockRestore();
-    });
+describe('getOauthTokens', () => {
+  it('should return undefined when tokens do not exist', () => {
+    const result = getOauthTokens('nonexistent.domo.com', 'proxy-id');
+    expect(result).toBeUndefined();
   });
 });

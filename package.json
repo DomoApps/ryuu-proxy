@@ -12,8 +12,6 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --check src/**/*.ts",
     "test": "vitest run",
@@ -24,11 +22,7 @@
     "release:alpha": "pnpm run build && pnpm publish --tag alpha",
     "release:beta": "pnpm run build && pnpm publish --tag beta",
     "release:production": "pnpm run build && pnpm publish",
-    "start": "pnpm run build -- -w",
-    "clean": "rm -rf node_modules pnpm-lock.yaml && pnpm install",
-    "bump:alpha": "pnpm run build && pnpm run bump -- --prerelease alpha",
-    "bump:beta": "pnpm run build && pnpm run bump -- --prerelease beta",
-    "bump": "standard-version"
+    "clean": "rm -rf node_modules pnpm-lock.yaml && pnpm install"
   },
   "author": "AppTeam6 <Squad.AppTeam6@domo.com>",
   "repository": {
@@ -47,29 +41,16 @@
     "@types/busboy": "^1.5.4",
     "@types/configstore": "^6.0.2",
     "@types/express": "^4.17.24",
-    "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.13.0",
-    "eslint": "^8.57.0",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-config-airbnb-typescript": "^18.0.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-prettier": "^5.5.4",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
     "mock-req": "^0.2.0",
     "prettier": "^3.6.2",
-    "standard-version": "^9.5.0",
     "typescript": "^5.9.3",
     "vitest": "^3.1.0"
   },
   "dependencies": {
     "busboy": "^1.6.0",
     "configstore": "^7.1.0",
-    "dotenv": "^16.6.1",
-    "fs-extra": "^11.3.2",
-    "ryuu-client": "^5.0.0-beta.1",
-    "tinyglobby": "^0.2.12"
+    "ryuu-client": "^5.0.0-beta.1"
   },
   "peerDependencies": {
     "express": "^4.17.0 || ^5.0.0"
