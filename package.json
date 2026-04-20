@@ -19,8 +19,8 @@
     "test:coverage": "vitest run --coverage",
     "build": "rm -rf ./dist && tsc",
     "prepublishOnly": "pnpm test && pnpm run build",
-    "release:alpha": "pnpm run build && pnpm publish --tag alpha",
-    "release:beta": "pnpm run build && pnpm publish --tag beta",
+    "release:alpha": "pnpm run build && pnpm publish --tag alpha --no-git-checks",
+    "release:beta": "pnpm run build && pnpm publish --tag beta --no-git-checks",
     "release:production": "pnpm run build && pnpm publish",
     "clean": "rm -rf node_modules pnpm-lock.yaml && pnpm install"
   },
