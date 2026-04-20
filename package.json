@@ -35,7 +35,17 @@
   "license": "MIT",
   "keywords": [
     "domo",
-    "domo apps"
+    "domo apps",
+    "domoapps",
+    "proxy",
+    "middleware",
+    "express",
+    "connect",
+    "koa",
+    "development",
+    "local-development",
+    "ryuu",
+    "cli"
   ],
   "devDependencies": {
     "@types/busboy": "^1.5.4",
