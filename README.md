@@ -38,7 +38,7 @@ Middleware for local [Domo App](https://developer.domo.com/docs/dev-studio-guide
 ## Requirements
 
 - Node.js **18+**
-- An active Domo CLI session (`domo login`) — see [`@domoinc/ryuu`](https://www.npmjs.com/package/@domoinc/ryuu)
+- An active Domo CLI session (`domo login`) — see [`@ryuu`](https://www.npmjs.com/package/ryuu)
 - A project `manifest.json` that has been published at least once (`domo publish`)
 - Peer: `express ^4.17.0 || ^5.0.0` (only required if you use `proxy.express()`)
 
@@ -63,8 +63,8 @@ domo login
 ### Configuration
 
 ```js
-import { Proxy } from "@domoinc/ryuu-proxy";
-import manifest from "./path/to/app/manifest.json" with { type: "json" };
+import { Proxy } from '@domoinc/ryuu-proxy';
+import manifest from './path/to/app/manifest.json' with { type: 'json' };
 
 const proxy = new Proxy({ manifest });
 ```
@@ -82,7 +82,7 @@ The `Proxy` constructor accepts a config object.
 ### With [Express](https://expressjs.com/) / [Connect](https://github.com/senchalabs/connect)
 
 ```js
-import express from "express";
+import express from 'express';
 
 const app = express();
 app.use(proxy.express());
@@ -114,10 +114,10 @@ app.use((req, res, next) => {
 
 ```js
 // node http
-import http from "node:http";
+import http from 'node:http';
 
 const server = http.createServer((req, res) => {
-  if (req.url === "/") {
+  if (req.url === '/') {
     loadHomePage(res);
   } else {
     proxy.stream(req).then((stream) => stream.pipe(res));
@@ -136,7 +136,7 @@ app.use(async (ctx, next) => {
     .stream(ctx.req)
     .then((data) => (ctx.body = ctx.req.pipe(data)))
     .catch((err) => {
-      if (err.name === "DomoException") {
+      if (err.name === 'DomoException') {
         ctx.status = err.status || err.statusCode || 500;
         ctx.body = err;
       } else {
@@ -153,7 +153,7 @@ app.use((req, res, next) => {
     .stream(req)
     .then((stream) => stream.pipe(res))
     .catch((err) => {
-      if (err.name === "DomoException") {
+      if (err.name === 'DomoException') {
         res.status(err.status || err.statusCode || 500).json(err);
       } else {
         next();
@@ -165,14 +165,14 @@ app.use((req, res, next) => {
 ```js
 // node http
 const server = http.createServer((req, res) => {
-  if (req.url === "/") {
+  if (req.url === '/') {
     loadHomePage();
   } else {
     proxy
       .stream(req)
       .then((stream) => stream.pipe(res))
       .catch((err) => {
-        if (err.name === "DomoException") {
+        if (err.name === 'DomoException') {
           res.writeHead(err.status || err.statusCode || 500);
           res.end(JSON.stringify(err));
         }
@@ -183,20 +183,20 @@ const server = http.createServer((req, res) => {
 
 `DomoException` shape:
 
-| Field | Description |
-| --- | --- |
-| `name` | Always `"DomoException"` |
-| `status` / `statusCode` | HTTP status code |
-| `statusMessage` | Error description |
+| Field                   | Description              |
+| ----------------------- | ------------------------ |
+| `name`                  | Always `"DomoException"` |
+| `status` / `statusCode` | HTTP status code         |
+| `statusMessage`         | Error description        |
 
 ## HTTP Proxy Support
 
 If you sit behind a corporate HTTP proxy, set any of the following environment variables. `REACT_APP_`-prefixed variants are also honored for Create React App projects.
 
-| Variable | Purpose |
-| --- | --- |
-| `PROXY_HOST` / `REACT_APP_PROXY_HOST` | Proxy hostname |
-| `PROXY_PORT` / `REACT_APP_PROXY_PORT` | Proxy port |
+| Variable                                      | Purpose                        |
+| --------------------------------------------- | ------------------------------ |
+| `PROXY_HOST` / `REACT_APP_PROXY_HOST`         | Proxy hostname                 |
+| `PROXY_PORT` / `REACT_APP_PROXY_PORT`         | Proxy port                     |
 | `PROXY_USERNAME` / `REACT_APP_PROXY_USERNAME` | Basic auth username (optional) |
 | `PROXY_PASSWORD` / `REACT_APP_PROXY_PASSWORD` | Basic auth password (optional) |
 
@@ -214,8 +214,8 @@ Apps using DQL, writeback, or OAuth features must supply a `proxyId` in the prox
 
 ## Related Packages
 
-- [`@domoinc/ryuu`](https://www.npmjs.com/package/@domoinc/ryuu) — the Domo CLI (`domo login`, `domo publish`, etc.)
-- [`@domoinc/ryuu-client`](https://www.npmjs.com/package/@domoinc/ryuu-client) — underlying Domo API client
+- [`ryuu`](https://www.npmjs.com/package/ryuu) — the Domo CLI (`domo login`, `domo publish`, etc.)
+- [`ryuu-client`](https://www.npmjs.com/package/ryuu-client) — underlying Domo API client
 
 ## Contributing
 
@@ -229,16 +229,16 @@ Apps using DQL, writeback, or OAuth features must supply a `proxyId` in the prox
 
 ### Scripts
 
-| Script | Description |
-| --- | --- |
-| `pnpm run build` | Compile TypeScript to `dist/` |
-| `pnpm test` | Run the test suite (vitest) |
-| `pnpm run test:watch` | Run vitest in watch mode |
-| `pnpm run test:coverage` | Run tests with coverage |
-| `pnpm run format` | Format source with Prettier |
-| `pnpm run release:production` | Build and publish to npm |
-| `pnpm run release:beta` | Build and publish under the `beta` tag |
-| `pnpm run release:alpha` | Build and publish under the `alpha` tag |
+| Script                        | Description                             |
+| ----------------------------- | --------------------------------------- |
+| `pnpm run build`              | Compile TypeScript to `dist/`           |
+| `pnpm test`                   | Run the test suite (vitest)             |
+| `pnpm run test:watch`         | Run vitest in watch mode                |
+| `pnpm run test:coverage`      | Run tests with coverage                 |
+| `pnpm run format`             | Format source with Prettier             |
+| `pnpm run release:production` | Build and publish to npm                |
+| `pnpm run release:beta`       | Build and publish under the `beta` tag  |
+| `pnpm run release:alpha`      | Build and publish under the `alpha` tag |
 
 ### Versioning
 
