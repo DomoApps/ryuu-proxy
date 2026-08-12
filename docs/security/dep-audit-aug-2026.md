@@ -124,19 +124,12 @@ Required version: `>=4.3.1`
 
 ---
 
-### 5. `axios` — Transitive (check origin) — MEDIUM
+### 5. `axios` — DISMISSED (stale Dependabot alerts)
 
-Several Dependabot alerts reference `axios@<1.18.0`:
-
-| Advisory | Severity | Summary | Fixed in |
-|---|---|---|---|
-| Dependabot #317 | MEDIUM | Prototype pollution gadgets can alter axios request construction | 1.18.0 |
-| Dependabot #316 | MEDIUM | Nested axios option objects can consume polluted prototype values | 1.18.0 |
-
-**Investigation needed:** ryuu-proxy does not directly depend on axios. Confirm the dependency
-path with `pnpm why axios`. If it's coming from an older version of ryuu-client bundled in the
-lock file, upgrading ryuu-client to 5.0.1 (which uses undici instead of axios) resolves this.
-If it surfaces from another path, add a pnpm override.
+Dependabot alerts #313-317 reference axios vulnerabilities. These are stale ghosts from before
+the v5 modernization of ryuu-client, which replaced axios with undici. Confirmed: axios is not
+present in `package.json`, `pnpm-lock.yaml`, or `node_modules` of this package or any package
+in the current chain. These alerts should be dismissed in GitHub's Dependabot UI.
 
 ---
 
@@ -175,19 +168,10 @@ pnpm install
 pnpm audit
 ```
 
-### Step 4: Investigate axios
+### Step 4: Dismiss stale axios alerts in GitHub
 
-```bash
-pnpm why axios
-```
-
-If the path is through ryuu-client, the upgrade above resolves it. If not, add:
-
-```json
-"axios": ">=1.18.0"
-```
-
-to the overrides block.
+Go to the Dependabot alerts page for ryuu-proxy and dismiss alerts #313-317 (axios) with the
+reason "Vulnerable code is not actually present" -- axios was removed in the v5 rewrite.
 
 ### Step 5: Run tests
 
