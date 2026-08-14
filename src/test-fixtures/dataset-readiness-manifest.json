@@ -1,0 +1,13 @@
+{
+  "name": "dataset-readiness-app",
+  "version": "0.0.1",
+  "size": {
+    "width": 3,
+    "height": 3
+  },
+  "mapping": [],
+  "id": "aeb2a12a-c7c2-4e3f-b9fc-848c2ea1347b",
+  "proxyId": "b021d304-607e-4703-8e8e-2d1453278111",
+  "scopes": ["identity", "user", "data", "query"],
+  "oAuthEnabled": true
+}
