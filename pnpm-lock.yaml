@@ -18,8 +18,8 @@ importers:
         specifier: ^4.17.0 || ^5.0.0
         version: 4.21.2
       ryuu-client:
-        specifier: file:ryuu-client-5.0.0-beta.1.tgz
-        version: file:ryuu-client-5.0.0-beta.1.tgz
+        specifier: ^5.0.0
+        version: 5.0.0
     devDependencies:
       '@types/busboy':
         specifier: ^1.5.4
@@ -795,9 +795,8 @@ packages:
     resolution: {integrity: sha512-DPe5pVFaAsinSaV6QjQ6gdiedWDcRCbUuiQfQa2wmWV7+xC9bGulGI8+TdRmoFkAPaBXk8CrAbnlY2ISniJ47Q==}
     engines: {node: '>=18'}
 
-  ryuu-client@file:ryuu-client-5.0.0-beta.1.tgz:
-    resolution: {integrity: sha512-2U7ofZLt0LQ204u/3hH+TWeLsIyO9Yk7sI373cFzTOHabjA4/V6Rv1q1DCiAWm9CW1d8IiLR4DED7wK+mooIww==, tarball: file:ryuu-client-5.0.0-beta.1.tgz}
-    version: 5.0.0-beta.1
+  ryuu-client@5.0.0:
+    resolution: {integrity: sha512-Ce9pEto6n2olAX8l29NrBpM0nFK0Kfhujamv4FrTwqPom3EtRDMMtBsWWsEiK7/Zjm777FlGmB7BkgYJWk+ARg==}
     engines: {node: '>=22.0.0'}
 
   safe-buffer@5.2.1:
@@ -1675,7 +1674,7 @@ snapshots:
 
   run-applescript@7.1.0: {}
 
-  ryuu-client@file:ryuu-client-5.0.0-beta.1.tgz:
+  ryuu-client@5.0.0:
     dependencies:
       open: 10.2.0
       tinyglobby: 0.2.16
