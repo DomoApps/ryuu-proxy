@@ -115,7 +115,7 @@ function parseBody(req: IncomingMessage): Promise<string | undefined> {
 }
 
 function pipeResponse(upstream: globalThis.Response, res: Response): void {
-  res.status(upstream.status);
+  res.statusCode = upstream.status;
 
   upstream.headers.forEach((value, key) => {
     if (
@@ -134,6 +134,37 @@ function pipeResponse(upstream: globalThis.Response, res: Response): void {
   }
 }
 
+export type ProxyErrorHandler = (err: any, res: Response) => void;
+
+/**
+ * Default error handler. Writes the failure via native `http.ServerResponse`
+ * methods (`statusCode` + `end`) rather than Express-only `res.status().send()`
+ * so the middleware works under raw connect servers (e.g. Vite) as well as Express.
+ */
+const defaultOnError: ProxyErrorHandler = (err, res) => {
+  res.statusCode = err?.status ?? err?.statusCode ?? 500;
+  res.end(err?.message ?? 'Unknown error');
+};
+
+/**
+ * Augments a ryuu-client error with the legacy axios/`DomoException` fields the
+ * v5.0 `Proxy` API surfaced (`statusCode`, `statusMessage`, and
+ * `response.data.{statusCode,statusMessage}`), so backwards-compatible
+ * `onError` handlers written against the old shape keep reporting the correct
+ * status instead of falling back to 500. Applied only in the deprecated facade.
+ */
+function withLegacyErrorShape(err: any): any {
+  if (!err || typeof err !== 'object') return err;
+  const statusCode = err.status ?? err.statusCode ?? 500;
+  const statusMessage = err.statusMessage ?? err.message ?? 'Unknown error';
+  if (err.statusCode === undefined) err.statusCode = statusCode;
+  if (err.statusMessage === undefined) err.statusMessage = statusMessage;
+  if (err.response?.data === undefined) {
+    err.response = { ...(err.response ?? {}), data: { statusCode, statusMessage } };
+  }
+  return err;
+}
+
 export function createProxy(config: ProxyConfig) {
   const { client, domainUrl, oauthTokens } = config;
 
@@ -150,7 +181,7 @@ export function createProxy(config: ProxyConfig) {
     });
   }
 
-  function express() {
+  function express(onError: ProxyErrorHandler = defaultOnError) {
     return (req: Request, res: Response, next: NextFunction) => {
       if (!isDomoRequest(req.url)) return next();
 
@@ -184,10 +215,7 @@ export function createProxy(config: ProxyConfig) {
             });
 
             pipeResponse(response, res);
-          })().catch((err) => {
-            const status = err.status ?? err.statusCode ?? 500;
-            res.status(status).send(err.message ?? 'Unknown error');
-          });
+          })().catch((err) => onError(err, res));
         });
 
         return req.pipe(bb);
@@ -195,10 +223,7 @@ export function createProxy(config: ProxyConfig) {
 
       proxyRequest(req)
         .then((response) => pipeResponse(response, res))
-        .catch((err) => {
-          const status = err.status ?? err.statusCode ?? 500;
-          res.status(status).send(err.message ?? 'Unknown error');
-        });
+        .catch((err) => onError(err, res));
     };
   }
 
@@ -291,6 +316,14 @@ async function createLegacyProxy(manifest: LegacyManifest) {
 export class Proxy {
   private readonly proxyPromise: Promise<ReturnType<typeof createProxy>>;
 
+  /**
+   * Error handler invoked when a proxied request (or proxy initialization)
+   * fails. Overridable for backwards compatibility with the v5.0 API; the
+   * default writes via native response methods so it works under connect
+   * servers (e.g. Vite) as well as Express.
+   */
+  onError: ProxyErrorHandler = defaultOnError;
+
   constructor({ manifest }: LegacyProxyConfig) {
     this.proxyPromise = createLegacyProxy(manifest);
     this.proxyPromise.catch(() => {
@@ -307,11 +340,8 @@ export class Proxy {
       }
 
       void this.proxyPromise
-        .then((proxy) => proxy.express()(req, res, next))
-        .catch((err) => {
-          const status = err.status ?? err.statusCode ?? 500;
-          res.status(status).send(err.message ?? 'Unknown error');
-        });
+        .then((proxy) => proxy.express((err, r) => this.onError(withLegacyErrorShape(err), r))(req, res, next))
+        .catch((err) => this.onError(withLegacyErrorShape(err), res));
     };
 
   stream = (req: IncomingMessage): Promise<globalThis.Response> | undefined => {

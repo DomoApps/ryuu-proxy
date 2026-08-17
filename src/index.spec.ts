@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import MockReq from 'mock-req';
+import { Writable } from 'node:stream';
 import type { IncomingMessage } from 'http';
 import type { RyuuClient } from 'ryuu-client';
 
@@ -217,6 +218,55 @@ describe('createProxy', () => {
       const callHeaders = (mockClient.request as any).mock.calls[0][1].headers;
       expect(callHeaders.referer).toContain('userId=27');
       expect(callHeaders.referer).toContain('customer=dev');
+    });
+  });
+
+  // Vite (and connect) hand the middleware a raw http.ServerResponse that only
+  // exposes statusCode/setHeader/end — no Express res.status()/res.send(). These
+  // guard the contract that a real dev-server integration (e.g. spool-iq) relies on.
+  describe('express() under a bare connect/Vite response', () => {
+    function createConnectRes() {
+      const chunks: Buffer[] = [];
+      const res = new Writable({
+        write(chunk, _enc, cb) {
+          chunks.push(Buffer.from(chunk));
+          cb();
+        },
+      }) as any;
+      res.setHeader = vi.fn();
+      res.getBody = () => Buffer.concat(chunks).toString();
+      // deliberately NO res.status / res.send
+      return res;
+    }
+
+    it('pipes a successful response through native methods (no res.status/send)', async () => {
+      const mockClient = createMockClient();
+      vi.mocked(mockClient.request).mockResolvedValue(new Response('hello-body', { status: 200 }));
+      const proxy = createProxy({ client: mockClient, manifest, domainUrl });
+      const req = new MockReq({ url: '/data/v1/test', method: 'GET', headers: { referer: 'x?y=1' } });
+      req.end();
+      const res = createConnectRes();
+
+      proxy.express()(req as any, res, vi.fn());
+
+      await vi.waitFor(() => expect(res.getBody()).toBe('hello-body'));
+      expect(res.statusCode).toBe(200);
+      expect(res.status).toBeUndefined();
+      expect(res.send).toBeUndefined();
+    });
+
+    it('reports upstream errors through native methods (no crash without res.status)', async () => {
+      const mockClient = createMockClient();
+      vi.mocked(mockClient.request).mockRejectedValue(Object.assign(new Error('boom'), { status: 502 }));
+      const proxy = createProxy({ client: mockClient, manifest, domainUrl });
+      const req = new MockReq({ url: '/data/v1/test', method: 'GET', headers: { referer: 'x?y=1' } });
+      req.end();
+      const res = createConnectRes();
+
+      proxy.express()(req as any, res, vi.fn());
+
+      await vi.waitFor(() => expect(res.statusCode).toBe(502));
+      expect(res.getBody()).toBe('boom');
     });
   });
 
@@ -458,11 +508,69 @@ describe('Proxy backwards compatibility', () => {
 
     proxy.express()(req as any, res, vi.fn());
 
-    await vi.waitFor(() => expect(res.status).toHaveBeenCalledWith(204));
+    await vi.waitFor(() => expect(res.statusCode).toBe(204));
     expect(client.request).toHaveBeenCalledWith(
       `${domainUrl}/data/v1/pricingData`,
       expect.objectContaining({ method: 'GET', rawResponse: true })
     );
+  });
+
+  it('invokes a custom onError handler (connect-safe) when a proxied request fails', async () => {
+    writeLogin();
+    const client = createLegacyMockClient();
+    vi.mocked(client.request).mockRejectedValue(Object.assign(new Error('upstream boom'), { status: 503 }));
+    ryuuClientMocks.createClient.mockReturnValue(client);
+    const proxy = new Proxy({ manifest: realManifest });
+
+    const onError = vi.fn((err, response) => {
+      response.statusCode = err.status ?? 500;
+      response.end(err.message);
+    });
+    proxy.onError = onError;
+
+    const req = new MockReq({
+      url: '/data/v1/pricingData',
+      method: 'GET',
+      headers: { referer: 'https://localhost:3000' },
+    });
+    req.end();
+    const res = { setHeader: vi.fn(), end: vi.fn(), statusCode: 0 } as any;
+
+    proxy.express()(req as any, res, vi.fn());
+
+    await vi.waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(res.statusCode).toBe(503);
+    expect(res.end).toHaveBeenCalledWith('upstream boom');
+  });
+
+  it('normalizes errors so a legacy axios-shaped onError reports the real status', async () => {
+    writeLogin();
+    const client = createLegacyMockClient();
+    vi.mocked(client.request).mockRejectedValue(Object.assign(new Error('DA0004: bad alias'), { status: 400 }));
+    ryuuClientMocks.createClient.mockReturnValue(client);
+    const proxy = new Proxy({ manifest: realManifest });
+
+    // Legacy v5.0-style handler reading the axios/DomoException error shape.
+    proxy.onError = (error, response) => {
+      const status = error.response?.data?.statusCode || 500;
+      const message = error.response?.data?.statusMessage || error.message || 'Proxy error';
+      response.statusCode = status;
+      response.end(message);
+    };
+
+    const req = new MockReq({
+      url: '/data/v1/pricingData',
+      method: 'GET',
+      headers: { referer: 'https://localhost:3000' },
+    });
+    req.end();
+    const res = { setHeader: vi.fn(), end: vi.fn(), statusCode: 0 } as any;
+
+    proxy.express()(req as any, res, vi.fn());
+
+    await vi.waitFor(() => expect(res.end).toHaveBeenCalled());
+    expect(res.statusCode).toBe(400);
+    expect(res.end).toHaveBeenCalledWith('DA0004: bad alias');
   });
 
   it('continues past non-Domo requests without requiring a login', () => {
