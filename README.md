@@ -5,7 +5,6 @@
 [![npm downloads](https://img.shields.io/npm/dm/@domoinc/ryuu-proxy.svg?style=flat-square)](https://npm-stat.com/charts.html?package=@domoinc/ryuu-proxy)
 [![types](https://img.shields.io/npm/types/@domoinc/ryuu-proxy.svg?style=flat-square)](https://www.npmjs.org/package/@domoinc/ryuu-proxy)
 [![license](https://img.shields.io/npm/l/@domoinc/ryuu-proxy.svg?style=flat-square)](https://github.com/DomoApps/ryuu-proxy/blob/master/LICENSE)
-[![Known Vulnerabilities](https://snyk.io/advisor/npm-package/@domoinc/ryuu-proxy/badge.svg)](https://snyk.io/advisor/npm-package/@domoinc/ryuu-proxy)
 
 Middleware for local [Domo App](https://developer.domo.com/docs/dev-studio-guides/overview) development. It intercepts calls to Domo data/API endpoints and proxies authenticated requests to your Domo instance, so you can develop against real data from your local dev server.
 
