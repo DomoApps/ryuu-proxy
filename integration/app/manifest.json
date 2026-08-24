@@ -1,0 +1,17 @@
+{
+  "name": "ryuu-proxy Integration Test",
+  "version": "1.0.0",
+  "size": {
+    "width": 1,
+    "height": 1
+  },
+  "fileName": "manifest.json",
+  "datasetsMapping": [
+    {
+      "dataSetId": "42989264-66cb-41c4-abed-563cf8802886",
+      "alias": "sales",
+      "fields": []
+    }
+  ],
+  "id": "5c065e1f-9cf4-4e43-a0a8-05c0c127061c"
+}

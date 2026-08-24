@@ -159,6 +159,39 @@ describe('createProxy', () => {
       );
     });
 
+    it('should forward POST body for sql requests and not leak content-length/transfer-encoding', async () => {
+      const mockClient = createMockClient();
+      const proxy = createProxy({ client: mockClient, manifest, domainUrl });
+      const sqlQuery = 'SELECT * FROM employees LIMIT 100';
+
+      const req = new MockReq({
+        url: '/sql/v1/employees',
+        method: 'POST',
+        headers: {
+          'content-type': 'text/plain',
+          'content-length': String(Buffer.byteLength(sqlQuery)),
+          'transfer-encoding': 'chunked',
+          referer: 'http://localhost:3000?userId=27',
+        },
+      });
+      req.push(sqlQuery);
+      req.push(null);
+
+      const res = { statusCode: 200, setHeader: vi.fn(), end: vi.fn() } as any;
+
+      proxy.express()(req as any, res, vi.fn());
+      await vi.waitFor(() => expect(mockClient.request).toHaveBeenCalled());
+
+      const [calledUrl, calledInit] = (mockClient.request as any).mock.calls[0];
+      expect(calledUrl).toBe(`${domainUrl}/sql/v1/employees`);
+      expect(calledInit.method).toBe('POST');
+      expect(calledInit.body).toBe(sqlQuery);
+      // content-length and transfer-encoding must NOT be forwarded — they conflict
+      // with how native fetch frames the reconstructed body string
+      expect(calledInit.headers['content-length']).toBeUndefined();
+      expect(calledInit.headers['transfer-encoding']).toBeUndefined();
+    });
+
     it('should preserve referer with query params', async () => {
       const mockClient = createMockClient();
       const proxy = createProxy({

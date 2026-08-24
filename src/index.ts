@@ -62,7 +62,14 @@ function buildHeaders(
   const hostname = domainUrl.replace('https://', '');
 
   // Determine which headers to filter
-  const filters: string[] = isMultiPart(req.headers) ? ['content-type', 'content-length', 'cookie'] : ['cookie'];
+  // For multipart: strip content-type/length/cookie — busboy re-builds them.
+  // For all requests: strip content-length and transfer-encoding so native fetch
+  // can set them correctly from the reconstructed body (forwarding them can produce
+  // an HTTP/1.1-invalid request when both content-length and transfer-encoding:
+  // chunked appear together, which causes Domo to return 500).
+  const filters: string[] = isMultiPart(req.headers)
+    ? ['content-type', 'content-length', 'transfer-encoding', 'cookie']
+    : ['content-length', 'transfer-encoding', 'cookie'];
 
   const filtered = Object.keys(req.headers).reduce((acc: Record<string, string | string[] | undefined>, key) => {
     if (!filters.includes(key.toLowerCase())) {

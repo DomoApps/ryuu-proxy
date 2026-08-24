@@ -1,6 +1,6 @@
 {
   "name": "@domoinc/ryuu-proxy",
-  "version": "5.1.1",
+  "version": "5.1.2-beta.0",
   "description": "a middleware that provides a proxy for local domo app development",
   "type": "module",
   "exports": {
@@ -22,7 +22,8 @@
     "release:alpha": "pnpm run build && pnpm publish --tag alpha --no-git-checks",
     "release:beta": "pnpm run build && pnpm publish --tag beta --no-git-checks",
     "release:production": "pnpm run build && pnpm publish",
-    "clean": "rm -rf node_modules pnpm-lock.yaml && pnpm install"
+    "clean": "rm -rf node_modules pnpm-lock.yaml && pnpm install",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "author": "AppTeam6 <Squad.AppTeam6@domo.com>",
   "repository": {
@@ -52,6 +53,7 @@
     "@types/configstore": "^6.0.2",
     "@types/express": "^4.17.24",
     "@types/node": "^22.13.0",
+    "express": "^4.21.0",
     "mock-req": "^0.2.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3",
